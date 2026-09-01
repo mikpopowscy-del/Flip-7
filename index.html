@@ -31,7 +31,7 @@
     gap: 10px;
   }
 
-  /* GÓRNY PASEK BANERÓW NA PC (2 RÓWNE KOLUMNY) */
+  /* GÓRNY PASEK BANERÓW */
   .top-banners-grid {
     display: grid;
     grid-template-columns: 1fr;
@@ -124,14 +124,13 @@
 
   /* GŁÓWNY UKŁAD */
   .main-grid {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr;
     gap: 10px;
     width: 100%;
   }
   @media(min-width: 900px) {
     .main-grid {
-      display: grid;
       grid-template-columns: 1fr 1fr;
       align-items: start;
     }
@@ -200,36 +199,7 @@
   .btn-hit-huge { background: var(--accent); color: #000; box-shadow: 0 4px 12px rgba(56, 189, 248, 0.4); }
   .btn-stay-huge { background: var(--success); color: #000; box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4); }
 
-  /* KLAWIATURY KART */
-  .deck-section-title { font-size: 0.72rem; color: var(--text-muted); margin: 4px 0 2px 0; text-transform: uppercase; font-weight: bold; }
-  .deck-keypad { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; margin-bottom: 6px; }
-  .deck-keypad.specials-grid { grid-template-columns: repeat(6, 1fr); }
-  .deck-keypad.actions-grid { grid-template-columns: repeat(3, 1fr); }
-
-  .card-btn { background: var(--bg-inner); border: 1px solid var(--border); color: var(--text-main); border-radius: 6px; padding: 8px 1px; text-align: center; }
-  .card-btn:disabled { opacity: 0.2; }
-  .card-btn .val { font-size: 1rem; font-weight: bold; }
-  .card-btn .count { font-size: 0.65rem; color: var(--text-muted); display: block; margin-top: 1px; }
-  .card-btn.special { border-color: var(--purple); }
-  .card-btn.mod { border-color: var(--warning); }
-
-  /* POKÓJ I GRACZE */
-  .pin-display-badge {
-    background: rgba(56, 189, 248, 0.08);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 8px 12px;
-    font-size: 0.9rem;
-    font-weight: bold;
-    color: var(--text-main);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .lobby-inputs { display: flex; gap: 6px; margin-top: 6px; }
-  .lobby-input { background: var(--bg-inner); border: 1px solid var(--border); color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem; flex: 1; }
-
+  /* LISTA GRACZY I WYLOSOWANYCH KART */
   .players-scroll { display: flex; flex-direction: column; gap: 8px; }
   .player-slot { background: var(--bg-inner); border-radius: 10px; padding: 10px; border-left: 5px solid var(--border); transition: all 0.2s; position: relative; }
   .player-slot.active { border-left-color: var(--warning); background: #1a2f4c; box-shadow: 0 0 15px rgba(56, 189, 248, 0.25); }
@@ -246,6 +216,36 @@
   .card-chip.mod { background: #d97706; color: #fff; border: 1px solid #f59e0b; }
   .card-chip.action { background: #7e22ce; color: #fff; border: 1px solid #c084fc; }
   .card-chip.shield { background: #047857; color: #fff; border: 1px solid #34d399; }
+
+  /* KLAWIATURY KART */
+  .deck-section-title { font-size: 0.72rem; color: var(--text-muted); margin: 4px 0 2px 0; text-transform: uppercase; font-weight: bold; }
+  .deck-keypad { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; margin-bottom: 6px; }
+  .deck-keypad.specials-grid { grid-template-columns: repeat(6, 1fr); }
+  .deck-keypad.actions-grid { grid-template-columns: repeat(3, 1fr); }
+
+  .card-btn { background: var(--bg-inner); border: 1px solid var(--border); color: var(--text-main); border-radius: 6px; padding: 8px 1px; text-align: center; }
+  .card-btn:disabled { opacity: 0.2; }
+  .card-btn .val { font-size: 1rem; font-weight: bold; }
+  .card-btn .count { font-size: 0.65rem; color: var(--text-muted); display: block; margin-top: 1px; }
+  .card-btn.special { border-color: var(--purple); }
+  .card-btn.mod { border-color: var(--warning); }
+
+  /* LOBBY */
+  .pin-display-badge {
+    background: rgba(56, 189, 248, 0.08);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: var(--text-main);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .lobby-inputs { display: flex; gap: 6px; margin-top: 6px; }
+  .lobby-input { background: var(--bg-inner); border: 1px solid var(--border); color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem; flex: 1; }
 
   /* FLIP 3 BANER */
   .flip3-active-box {
@@ -301,7 +301,7 @@
 
   <!-- GŁÓWNY UKŁAD -->
   <div class="main-grid">
-    <!-- LEWY PANEL (NA DESKTOPIE PO LEWEJ, NA TELEFONIE PO KOLEI: STATS -> ARENA 3D -> GRACZE -> KLAWIATURY NA SAMYM DOLE) -->
+    <!-- PANEL GŁÓWNY: STATYSTYKI, ARENA 3D ORAZ GRACZE I ICH KARTY (WIDOK GŁÓWNY) -->
     <div class="panel">
       <!-- 1. Statystyki -->
       <div class="stats-grid">
@@ -323,7 +323,7 @@
         </div>
       </div>
 
-      <!-- 2. Arena 3D i dociąganie -->
+      <!-- 2. Arena 3D i losowanie -->
       <div class="arena-box">
         <div class="deck-row">
           <div class="card-3d-deck" id="deck-3d-click" onclick="draw3DCard()">
@@ -343,8 +343,17 @@
         </div>
       </div>
 
-      <!-- 3. Klawiatury kart (NA TELEFONIE ZJEŻDŻAJĄ NA DÓŁ POPRZEZ CSS ORDER) -->
-      <div id="deck-keypads-section">
+      <!-- 3. Gracze przy stole i wylosowane karty (WIDOCZNE OD RAZU BEZ SCROLLOWANIA) -->
+      <div>
+        <h3 style="margin: 4px 0 6px 0; font-size:0.95rem; color:var(--text-main);">Gracze przy stole (Karty w grze)</h3>
+        <div class="players-scroll" id="players-list"></div>
+      </div>
+    </div>
+
+    <!-- PANEL BOCZNY (NA TELEFONIE NA SAMYM DOLE): KLAWIATURA POZOSTAŁYCH KART ORAZ LOBBY -->
+    <div class="panel">
+      <!-- 1. Klawiatura kart pozostałych w talii -->
+      <div>
         <div class="deck-section-title">Karty Numeryczne (Pozostałe w talii)</div>
         <div class="deck-keypad" id="deck-numbers"></div>
         
@@ -352,10 +361,8 @@
         <div class="deck-keypad specials-grid" id="deck-modifiers"></div>
         <div class="deck-keypad actions-grid" id="deck-actions" style="margin-top:4px;"></div>
       </div>
-    </div>
 
-    <!-- PRAWY PANEL: LOBBY, GRACZE PRZY STOLE I WYLOSOWANE KARTY -->
-    <div class="panel" id="players-side-panel">
+      <!-- 2. Lobby & PIN -->
       <div class="pin-display-badge" id="lobby-badge">
         <span id="lobby-title">🎮 PIN: <strong style="color:var(--warning); font-size:1.15rem; letter-spacing:1px;">Lokalnie</strong></span>
         <span style="font-size:0.75rem; color:var(--text-muted);" id="lobby-sub">Grasz na 1 urządzeniu</span>
@@ -371,9 +378,6 @@
           <button class="action-btn-huge" style="background:#334155; color:#fff; padding:8px 14px; font-size:0.85rem;" onclick="joinRoom()">Dołącz</button>
         </div>
       </div>
-
-      <h3 style="margin: 4px 0 2px 0; font-size:0.95rem; color:var(--text-main);">Gracze przy stole (Karty w grze)</h3>
-      <div class="players-scroll" id="players-list"></div>
 
       <div style="display:flex; gap:8px; margin-top:auto;" id="host-controls">
         <button class="action-btn-huge" style="background:#6366f1; color:#fff; flex:1; font-size:0.85rem; padding:12px;" onclick="manualShuffle()">🔀 Przetasuj</button>
@@ -499,7 +503,7 @@ function handleIncomingAction(action) {
 function createRoom() {
   const myName = document.getElementById("my-name-input").value.trim() || "Host";
   const pin = Math.floor(1000 + Math.random() * 9000).toString();
-  currentRoomTopic = `flip7_v11_${pin}`;
+  currentRoomTopic = `flip7_v12_${pin}`;
   
   document.getElementById("lobby-title").innerText = "Łączenie...";
 
@@ -552,7 +556,7 @@ function joinRoom() {
   const myName = document.getElementById("my-name-input").value.trim() || "Gracz";
   if (!pin) { alert("Wpisz 4-cyfrowy PIN!"); return; }
 
-  currentRoomTopic = `flip7_v11_${pin}`;
+  currentRoomTopic = `flip7_v12_${pin}`;
   document.getElementById("lobby-title").innerText = "Dołączanie...";
 
   mqttClient = mqtt.connect(MQTT_BROKER, {
@@ -898,7 +902,6 @@ function checkAutoRoundProgression() {
   }
 }
 
-// ROTACJA ROZPOCZYNANIA RUNDY W PRAWO
 function autoStartNextRound() {
   players.forEach(p => {
     p.cards = [];
@@ -1092,7 +1095,7 @@ function render() {
     `;
   }
 
-  // LISTA GRACZY
+  // LISTA GRACZY (WIDOCZNA OD RAZU NA STOLE)
   const playersContainer = document.getElementById("players-list");
   playersContainer.innerHTML = "";
   players.forEach((p, idx) => {
@@ -1123,7 +1126,7 @@ function render() {
     playersContainer.appendChild(div);
   });
 
-  // KLAWIATURY
+  // KLAWIATURY (NA DOLE STRONY)
   const numContainer = document.getElementById("deck-numbers");
   numContainer.innerHTML = "";
   for (let i = 0; i <= 12; i++) {
