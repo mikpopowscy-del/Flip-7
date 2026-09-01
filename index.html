@@ -246,8 +246,8 @@
   }
 
   .lobby-inputs { display: flex; gap: 6px; margin-top: 6px; }
-  .lobby-input { background: var(--bg-inner); border: 1px solid var(--border); color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem; flex: 1; }
-  .lobby-input::placeholder { color: var(--text-muted); opacity: 0.8; }
+  .lobby-input { background: var(--bg-inner); border: 1px solid var(--border); color: #fff; padding: 10px; border-radius: 8px; font-size: 0.85rem; flex: 1; }
+  .lobby-input::placeholder { color: var(--text-muted); opacity: 0.75; }
 
   /* FLIP 3 BANER */
   .flip3-active-box {
@@ -303,7 +303,7 @@
 
   <!-- GŁÓWNY UKŁAD -->
   <div class="main-grid">
-    <!-- PANEL GŁÓWNY: STATYSTYKI, ARENA 3D ORAZ GRACZE I WYNIKI -->
+    <!-- PANEL 1: STATYSTYKI, ARENA 3D ORAZ GRACZE I WYNIKI (WIDOK GŁÓWNY) -->
     <div class="panel">
       <!-- 1. Statystyki -->
       <div class="stats-grid">
@@ -357,7 +357,7 @@
       </div>
     </div>
 
-    <!-- PANEL BOCZNY: KLAWIATURY POZOSTAŁYCH W TALII KART ORAZ OPCJE LOBBY -->
+    <!-- PANEL 2: KLAWIATURY POZOSTAŁYCH W TALII KART ORAZ OPCJE LOBBY -->
     <div class="panel">
       <!-- 1. Klawiatury kart pozostałych w talii -->
       <div>
@@ -503,9 +503,16 @@ function handleIncomingAction(action) {
 }
 
 function createRoom() {
-  const myName = document.getElementById("my-name-input").value.trim() || "Host";
+  const nameInput = document.getElementById("my-name-input");
+  const myName = nameInput.value.trim();
+  if (!myName) {
+    alert("Wpisz swoje imię przed założeniem pokoju!");
+    nameInput.focus();
+    return;
+  }
+
   const pin = Math.floor(1000 + Math.random() * 9000).toString();
-  currentRoomTopic = `flip7_v14_${pin}`;
+  currentRoomTopic = `flip7_v15_${pin}`;
   
   document.getElementById("lobby-title").innerText = "Łączenie...";
 
@@ -554,11 +561,18 @@ function createRoom() {
 }
 
 function joinRoom() {
+  const nameInput = document.getElementById("my-name-input");
+  const myName = nameInput.value.trim();
+  if (!myName) {
+    alert("Wpisz swoje imię przed dołączeniem!");
+    nameInput.focus();
+    return;
+  }
+
   const pin = document.getElementById("room-pin-input").value.trim();
-  const myName = document.getElementById("my-name-input").value.trim() || "Gracz";
   if (!pin) { alert("Wpisz 4-cyfrowy PIN!"); return; }
 
-  currentRoomTopic = `flip7_v14_${pin}`;
+  currentRoomTopic = `flip7_v15_${pin}`;
   document.getElementById("lobby-title").innerText = "Dołączanie...";
 
   mqttClient = mqtt.connect(MQTT_BROKER, {
