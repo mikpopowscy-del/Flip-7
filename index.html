@@ -76,7 +76,7 @@
   .flip3-dot { width: 14px; height: 14px; border-radius: 50%; background: rgba(255,255,255,0.3); border: 2px solid #fff; }
   .flip3-dot.active { background: #fbbf24; border-color: #fbbf24; box-shadow: 0 0 10px #fbbf24; }
 
-  /* DUŻE POWIADOMIENIE O PRZEKAZANIU KARTY */
+  /* POWIADOMIENIE O PRZEKAZANIU KARTY / AKCJI */
   .special-alert-banner {
     display: none;
     background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
@@ -127,6 +127,7 @@
   
   .score-badge { font-size: 0.75rem; padding: 3px 7px; border-radius: 4px; font-weight: 800; background: rgba(0,0,0,0.4); }
   .score-badge.total { background: #0284c7; color: #fff; }
+  .dealer-chip { background: #d97706; color: #fff; font-size: 0.65rem; padding: 2px 5px; border-radius: 4px; font-weight: 900; margin-left: 4px; }
 
   /* KARTY W RĘKACH */
   .cards-list { display: flex; flex-wrap: wrap; gap: 5px; min-height: 24px; }
@@ -174,7 +175,7 @@
   .drawn-card-slot .c-val { font-size: 2.2rem; }
   .drawn-card-slot .c-lbl { font-size: 0.65rem; text-transform: uppercase; }
 
-  /* PRZYCISKI KCIUKOWE */
+  /* PRZYCISKI GŁÓWNE */
   .mobile-main-controls { display: grid; grid-template-columns: 1.2fr 1fr; gap: 8px; width: 100%; }
   button.action-btn-huge {
     cursor: pointer; border: none; border-radius: 10px; padding: 14px 10px;
@@ -186,7 +187,7 @@
   .btn-hit-huge { background: var(--accent); color: #000; box-shadow: 0 4px 12px rgba(56, 189, 248, 0.4); }
   .btn-stay-huge { background: var(--success); color: #000; box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4); }
 
-  /* KLAWIATURA */
+  /* KLAWIATURY */
   .deck-section-title { font-size: 0.72rem; color: var(--text-muted); margin: 6px 0 3px 0; text-transform: uppercase; font-weight: bold; }
   .deck-keypad { display: grid; grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: 4px; margin-bottom: 6px; }
   .card-btn { background: var(--bg-inner); border: 1px solid var(--border); color: var(--text-main); border-radius: 6px; padding: 8px 1px; text-align: center; }
@@ -222,7 +223,7 @@
   <!-- GŁÓWNY BANER TURY -->
   <div class="turn-banner other-turn" id="global-turn-banner">OCZEKIWANIE NA START</div>
 
-  <!-- SPECJALNY BANER TRYBU FLIP 3 Z DOCIĄGNIĘCIAMI -->
+  <!-- BANER FLIP 3 Z ODLICZANIEM -->
   <div class="flip3-active-box" id="flip3-status-box">
     <div style="font-weight: 900; font-size: 0.95rem; text-transform: uppercase;">⚡ TRYB FLIP 3: <span id="flip3-target-player" style="color:#fbbf24;"></span></div>
     <div style="font-size: 0.78rem; margin-top:2px;">Wymuszone dociągnięcia: <strong id="flip3-draw-counter">3 z 3</strong></div>
@@ -344,6 +345,7 @@ let players = [
   { id: "local_1", name: "Gracz 1", cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 }
 ];
 let activePlayerIndex = 0;
+let roundStartingIndex = 0; // Wskazuje gracza rozpoczynającego daną rundę (zgodnie z ruchem wskazówek zegara)
 let lastDrawnCard = null;
 
 let flip3State = { active: false, targetPlayerIndex: null, remainingDraws: 0, returnPlayerIndex: null };
@@ -396,7 +398,8 @@ function broadcastGameState(actionAlertData = null) {
     type: "SYNC", 
     deck, 
     players, 
-    activePlayerIndex, 
+    activePlayerIndex,
+    roundStartingIndex,
     lastDrawnCard, 
     flip3State,
     alert: actionAlertData 
@@ -421,7 +424,7 @@ function handleIncomingAction(action) {
 function createRoom() {
   const myName = document.getElementById("my-name-input").value.trim() || "Host";
   const pin = Math.floor(1000 + Math.random() * 9000).toString();
-  currentRoomTopic = `flip7_v5_${pin}`;
+  currentRoomTopic = `flip7_v6_${pin}`;
   
   document.getElementById("lobby-title").innerText = "Łączenie...";
 
@@ -434,7 +437,9 @@ function createRoom() {
   mqttClient.on('connect', () => {
     isHost = true;
     players = [{ id: myClientId, name: myName, cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 }];
-    
+    roundStartingIndex = 0;
+    activePlayerIndex = 0;
+
     mqttClient.subscribe(currentRoomTopic + "/actions");
     mqttClient.subscribe(currentRoomTopic + "/join");
 
@@ -472,7 +477,7 @@ function joinRoom() {
   const myName = document.getElementById("my-name-input").value.trim() || "Gracz";
   if (!pin) { alert("Wpisz 4-cyfrowy PIN!"); return; }
 
-  currentRoomTopic = `flip7_v5_${pin}`;
+  currentRoomTopic = `flip7_v6_${pin}`;
   document.getElementById("lobby-title").innerText = "Dołączanie...";
 
   mqttClient = mqtt.connect(MQTT_BROKER, {
@@ -506,6 +511,7 @@ function joinRoom() {
         deck = data.deck;
         players = data.players;
         activePlayerIndex = data.activePlayerIndex;
+        roundStartingIndex = data.roundStartingIndex || 0;
         lastDrawnCard = data.lastDrawnCard;
         flip3State = data.flip3State;
 
@@ -807,6 +813,7 @@ function checkAutoRoundProgression() {
   }
 }
 
+// NOWA RUNDA: ROTACJA PIERWSZEGO GRACZA WSKAZÓWKAMI ZEGARA
 function autoStartNextRound() {
   players.forEach(p => {
     p.cards = [];
@@ -815,10 +822,23 @@ function autoStartNextRound() {
     p.secondChances = 0;
   });
   flip3State.active = false;
-  activePlayerIndex = 0;
+
+  // Przesunięcie startującego gracza o 1 pozycję w prawo (zgodnie z ruchem wskazówek zegara)
+  if (players.length > 0) {
+    roundStartingIndex = (roundStartingIndex + 1) % players.length;
+    activePlayerIndex = roundStartingIndex;
+  } else {
+    activePlayerIndex = 0;
+  }
+
   if (getCardsRemainingCount() < 15) initDeck();
   
-  const alertData = { title: "🔁 NOWA RUNDA", desc: "Wszyscy gracze wracają do gry!", mode: "special" };
+  const startingPlayerName = players[activePlayerIndex] ? players[activePlayerIndex].name : "Gracz";
+  const alertData = { 
+    title: "🔁 NOWA RUNDA", 
+    desc: `Rundę rozpoczyna: ${startingPlayerName.toUpperCase()}`, 
+    mode: "special" 
+  };
   triggerActionBanner(alertData.title, alertData.desc, alertData.mode);
   
   broadcastGameState(alertData);
@@ -836,6 +856,7 @@ function resetDeckFull() {
     p.secondChances = 0;
   });
   flip3State.active = false;
+  roundStartingIndex = 0;
   activePlayerIndex = 0;
   lastDrawnCard = null;
   broadcastGameState({ title: "RESET GRY", desc: "Gra rozpoczęta od zera!", mode: "special" });
@@ -954,7 +975,7 @@ function render() {
 
   // PRZYCISKI
   document.getElementById("btn-hit-huge").disabled = !canClick;
-  document.getElementById("btn-stay-huge").disabled = !canClick || flip3State.active; // W trakcie Flip 3 gracz MUSI dociągać
+  document.getElementById("btn-stay-huge").disabled = !canClick || flip3State.active;
   document.getElementById("deck-3d-click").style.pointerEvents = canClick ? "auto" : "none";
 
   // STATYSTYKI
@@ -987,18 +1008,22 @@ function render() {
     `;
   }
 
-  // LISTA GRACZY
+  // LISTA GRACZY ZE WSKAŹNIKIEM STARTUJĄCEGO RUNDĘ
   const playersContainer = document.getElementById("players-list");
   playersContainer.innerHTML = "";
   players.forEach((p, idx) => {
     const isAct = idx === effectivePlayerIdx && p.status === "active";
+    const isStarter = idx === roundStartingIndex;
     const isMe = p.id === myClientId;
 
     const div = document.createElement("div");
     div.className = `player-slot ${p.status} ${isAct ? 'active' : ''}`;
     div.innerHTML = `
       <div class="player-header">
-        <strong style="${isMe ? 'color:var(--accent); font-weight:900;' : ''}">${p.name} ${isMe ? '(Ty)' : ''} ${isAct ? '▶' : ''}</strong>
+        <div style="display:flex; align-items:center;">
+          <strong style="${isMe ? 'color:var(--accent); font-weight:900;' : ''}">${p.name} ${isMe ? '(Ty)' : ''} ${isAct ? '▶' : ''}</strong>
+          ${isStarter ? '<span class="dealer-chip" title="Rozpoczyna tę rundę">👑 Start</span>' : ''}
+        </div>
         <div>
           <span class="score-badge">R: ${p.roundScore}</span>
           <span class="score-badge total">S: ${p.totalScore}/200</span>
