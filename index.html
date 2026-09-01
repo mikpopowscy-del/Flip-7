@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Flip 7</title>
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<title>Flip 7 Fast Online</title>
+<!-- Błyskawiczna biblioteka WebSocket / MQTT (Zero lagów przy łączeniu) -->
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <style>
   :root {
     --bg-main: #0b1329;
@@ -52,7 +53,7 @@
   .card-chip.action { background: var(--purple); }
   .card-chip.shield { background: #059669; }
 
-  /* KLAWIATURA */
+  /* KLAWIATURY */
   .deck-section-title { font-size: 0.75rem; color: var(--text-muted); margin: 6px 0 4px 0; text-transform: uppercase; letter-spacing: 0.5px; font-weight: bold; }
   .deck-keypad { display: grid; grid-template-columns: repeat(auto-fill, minmax(54px, 1fr)); gap: 5px; margin-bottom: 8px; }
   .card-btn { background: var(--bg-inner); border: 1px solid var(--border); color: var(--text-main); border-radius: 6px; padding: 10px 2px; text-align: center; cursor: pointer; touch-action: manipulation; }
@@ -84,7 +85,7 @@
   .prob-table th, .prob-table td { padding: 4px 5px; border-bottom: 1px solid var(--border); }
   .prob-table th { color: var(--text-muted); }
 
-  /* 3D ARENA */
+  /* 3D DECK */
   .arena-3d-box {
     background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
     border: 1px solid var(--border);
@@ -144,10 +145,9 @@
 <div class="container">
   <!-- LEWY PANEL -->
   <div class="panel">
-    <!-- POKÓJ MULTIPLAYER -->
     <div class="lobby-box">
-      <div style="font-size: 0.85rem; font-weight: bold; color: var(--accent);">🌐 Gra Online (Multiplayer)</div>
-      <div id="lobby-status" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">Tryb offline. Wpisz imię i stwórz lub dołącz.</div>
+      <div style="font-size: 0.85rem; font-weight: bold; color: var(--accent);">🌐 Szybki Multiplayer Online</div>
+      <div id="lobby-status" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">Wpisz imię i stwórz lub dołącz do pokoju.</div>
       
       <div class="lobby-inputs" id="lobby-setup">
         <input type="text" id="my-name-input" class="lobby-input" placeholder="Twoje imię" value="Mikołaj">
@@ -246,7 +246,7 @@
   </div>
 </div>
 
-<!-- MODAL WYBORU CELU -->
+<!-- MODAL -->
 <div class="modal-overlay" id="target-modal">
   <div class="modal-content">
     <h3 id="modal-card-title">Przydziel kartę akcji</h3>
@@ -257,17 +257,6 @@
 </div>
 
 <script>
-// Konfiguracja STUN serwerów Google zapobiegająca blokowaniu połączeń między różnymi sieciami LTE/Wi-Fi
-const PEER_CONFIG = {
-  config: {
-    iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-      { urls: 'stun:stun2.l.google.com:19302' }
-    ]
-  }
-};
-
 const INITIAL_DECK = {
   "0": 1, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, 
   "7": 7, "8": 8, "9": 9, "10": 10, "11": 11, "12": 12,
@@ -292,11 +281,11 @@ let flip3State = {
 
 let pendingSpecialCard = null;
 
-// MULTIPLAYER STATE
-let peer = null;
-let connections = [];
+// MULTIPLAYER VIA WEBSOCKETS (MQTT)
+let mqttClient = null;
+let currentRoomTopic = null;
 let isHost = false;
-let myPeerId = null;
+let myClientId = "p_" + Math.random().toString(16).substr(2, 8);
 
 function initDeck() {
   deck = JSON.parse(JSON.stringify(INITIAL_DECK));
@@ -306,9 +295,9 @@ function getCardsRemainingCount() {
   return Object.values(deck).reduce((a, b) => a + b, 0);
 }
 
-// SYNCHRONIZACJA
+// BŁYSKAWICZNA SYNCHRONIZACJA
 function broadcastGameState() {
-  if (!isHost) return;
+  if (!isHost || !mqttClient || !currentRoomTopic) return;
   const payload = {
     type: "SYNC",
     deck,
@@ -317,16 +306,14 @@ function broadcastGameState() {
     last3DCard,
     flip3State
   };
-  connections.forEach(conn => {
-    if (conn.open) conn.send(payload);
-  });
+  mqttClient.publish(currentRoomTopic + "/state", JSON.stringify(payload));
 }
 
 function sendActionToHost(actionData) {
   if (isHost) {
     handleIncomingAction(actionData);
-  } else if (connections[0] && connections[0].open) {
-    connections[0].send({ type: "ACTION", data: actionData });
+  } else if (mqttClient && currentRoomTopic) {
+    mqttClient.publish(currentRoomTopic + "/actions", JSON.stringify({ senderId: myClientId, action: actionData }));
   }
 }
 
@@ -341,49 +328,43 @@ function handleIncomingAction(action) {
 function createRoom() {
   const myName = document.getElementById("my-name-input").value.trim() || "Host";
   const pin = Math.floor(1000 + Math.random() * 9000).toString();
-  const roomPeerId = `f7p-${pin}`;
-
-  if (peer) peer.destroy();
-
-  peer = new Peer(roomPeerId, PEER_CONFIG);
+  currentRoomTopic = `flip7game/room_${pin}`;
   
-  peer.on('open', (id) => {
+  document.getElementById("lobby-status").innerText = "Tworzenie pokoju...";
+
+  // Połączenie z darmowym publicznym brokerem HiveMQ WebSocket (SSL)
+  mqttClient = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
+
+  mqttClient.on('connect', () => {
     isHost = true;
-    myPeerId = id;
-    players = [{ id: id, name: myName, cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 }];
-    document.getElementById("lobby-status").innerHTML = `🎮 Jesteś HOST-em! PIN: <strong style="color:var(--warning); font-size:1.1rem; letter-spacing:2px;">${pin}</strong>`;
+    players = [{ id: myClientId, name: myName, cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 }];
+    
+    mqttClient.subscribe(currentRoomTopic + "/actions");
+    mqttClient.subscribe(currentRoomTopic + "/join");
+
+    document.getElementById("lobby-status").innerHTML = `🎮 Jesteś HOST-em! PIN: <strong style="color:var(--warning); font-size:1.15rem; letter-spacing:2px;">${pin}</strong>`;
     document.getElementById("lobby-setup").style.display = "none";
     document.getElementById("lobby-join").style.display = "none";
+    
     initDeck();
+    broadcastGameState();
     render();
   });
 
-  peer.on('connection', (conn) => {
-    conn.on('open', () => {
-      connections.push(conn);
-    });
-
-    conn.on('data', (data) => {
-      if (data.type === "JOIN") {
-        players.push({ id: conn.peer, name: data.name, cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 });
-        showNotification(`Gracz ${data.name} dołączył do gry!`);
-        broadcastGameState();
-        render();
-      } else if (data.type === "ACTION") {
-        handleIncomingAction(data.data);
+  mqttClient.on('message', (topic, message) => {
+    try {
+      const data = JSON.parse(message.toString());
+      if (topic.endsWith("/join")) {
+        if (!players.some(p => p.id === data.id)) {
+          players.push({ id: data.id, name: data.name, cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 });
+          showNotification(`Gracz ${data.name} dołączył do gry!`);
+          broadcastGameState();
+          render();
+        }
+      } else if (topic.endsWith("/actions")) {
+        handleIncomingAction(data.action);
       }
-    });
-
-    conn.on('close', () => {
-      players = players.filter(p => p.id !== conn.peer);
-      broadcastGameState();
-      render();
-    });
-  });
-
-  peer.on('error', (err) => {
-    console.error("Peer error:", err);
-    alert("PIN zajęty lub błąd sieci. Spróbuj utworzyć pokój ponownie.");
+    } catch(e) { console.error(e); }
   });
 }
 
@@ -393,29 +374,28 @@ function joinRoom() {
   const myName = document.getElementById("my-name-input").value.trim() || "Gracz";
   if (!pin) { alert("Wpisz 4-cyfrowy PIN!"); return; }
 
-  if (peer) peer.destroy();
+  currentRoomTopic = `flip7game/room_${pin}`;
+  document.getElementById("lobby-status").innerText = "Błyskawiczne łączenie...";
 
-  document.getElementById("lobby-status").innerText = "Łączenie z pokojem...";
+  mqttClient = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
 
-  peer = new Peer(PEER_CONFIG);
-  
-  peer.on('open', (id) => {
-    myPeerId = id;
-    const targetRoomId = `f7p-${pin}`;
-    const conn = peer.connect(targetRoomId, { reliable: true });
+  mqttClient.on('connect', () => {
+    isHost = false;
+    mqttClient.subscribe(currentRoomTopic + "/state");
+    
+    // Wysłanie prośby o dołączenie
+    mqttClient.publish(currentRoomTopic + "/join", JSON.stringify({ id: myClientId, name: myName }));
 
-    conn.on('open', () => {
-      connections = [conn];
-      isHost = false;
-      conn.send({ type: "JOIN", name: myName });
-      document.getElementById("lobby-status").innerHTML = `✅ Połączono z PIN: <strong style="color:var(--success)">${pin}</strong>`;
-      document.getElementById("lobby-setup").style.display = "none";
-      document.getElementById("lobby-join").style.display = "none";
-      document.getElementById("host-controls").style.display = "none";
-    });
+    document.getElementById("lobby-status").innerHTML = `✅ Połączono z PIN: <strong style="color:var(--success)">${pin}</strong>`;
+    document.getElementById("lobby-setup").style.display = "none";
+    document.getElementById("lobby-join").style.display = "none";
+    document.getElementById("host-controls").style.display = "none";
+  });
 
-    conn.on('data', (data) => {
-      if (data.type === "SYNC") {
+  mqttClient.on('message', (topic, message) => {
+    try {
+      if (topic.endsWith("/state")) {
+        const data = JSON.parse(message.toString());
         deck = data.deck;
         players = data.players;
         activePlayerIndex = data.activePlayerIndex;
@@ -423,18 +403,7 @@ function joinRoom() {
         flip3State = data.flip3State;
         render();
       }
-    });
-
-    conn.on('error', (err) => {
-      console.error(err);
-      alert("Nie udało się połączyć z tym kodem PIN. Upewnij się, że Host stworzył pokój.");
-      document.getElementById("lobby-status").innerText = "Błąd połączenia.";
-    });
-  });
-
-  peer.on('error', (err) => {
-    console.error("Peer error:", err);
-    alert("Błąd połączenia z serwerem. Sprawdź połączenie z internetem.");
+    } catch(e) { console.error(e); }
   });
 }
 
@@ -453,7 +422,7 @@ function showNotification(msg) {
 }
 
 function manualShuffle() {
-  if (!isHost && connections.length > 0) return;
+  if (!isHost && mqttClient) return;
   initDeck();
   showNotification("🔀 Talia przetasowana (94 karty)!");
   broadcastGameState();
@@ -501,7 +470,7 @@ function draw3DCard() {
   const currP = players[effectiveIdx];
   if (currP.status !== "active") return;
 
-  if (!isHost && connections.length > 0) {
+  if (!isHost && mqttClient) {
     sendActionToHost({ name: "DRAW_3D" });
     return;
   }
@@ -521,7 +490,7 @@ function handleCardClick(cardKey) {
   if (deck[cardKey] <= 0) return;
   last3DCard = cardKey;
 
-  if (!isHost && connections.length > 0) {
+  if (!isHost && mqttClient) {
     sendActionToHost({ name: "CLICK_CARD", card: cardKey });
     return;
   }
@@ -631,7 +600,7 @@ function openSpecialModal(cardKey) {
     if (isAvailable) {
       btn.onclick = () => {
         closeModal();
-        if (!isHost && connections.length > 0) {
+        if (!isHost && mqttClient) {
           sendActionToHost({ name: "ASSIGN_SPECIAL", targetIdx: idx, cardKey: cardKey });
         } else {
           confirmSpecialAssignment(idx, cardKey);
@@ -685,7 +654,7 @@ function advanceTurnToNextActive() {
 }
 
 function playerStay(idx) {
-  if (!isHost && connections.length > 0) {
+  if (!isHost && mqttClient) {
     sendActionToHost({ name: "STAY", playerIdx: idx });
     return;
   }
@@ -732,7 +701,7 @@ function autoStartNextRound() {
 }
 
 function resetDeckFull() {
-  if (!isHost && connections.length > 0) return;
+  if (!isHost && mqttClient) return;
   initDeck();
   players.forEach(p => {
     p.cards = [];
@@ -761,7 +730,7 @@ function render() {
   const effectivePlayerIdx = flip3State.active ? flip3State.targetPlayerIndex : activePlayerIndex;
   const currPlayer = players[effectivePlayerIdx] || players[0];
 
-  const isMyTurn = (!peer || !myPeerId) ? true : (currPlayer.id === myPeerId);
+  const isMyTurn = (!mqttClient) ? true : (currPlayer.id === myClientId);
   document.getElementById("btn-hit-3d").disabled = !isMyTurn || currPlayer.status !== "active";
   document.getElementById("btn-stay-3d").disabled = !isMyTurn || currPlayer.status !== "active";
   document.getElementById("btn-stay-main").disabled = !isMyTurn || currPlayer.status !== "active";
@@ -843,7 +812,7 @@ function render() {
     playersContainer.appendChild(div);
   });
 
-  // Klawiatura
+  // Klawiatury
   const numContainer = document.getElementById("deck-numbers");
   numContainer.innerHTML = "";
   for (let i = 0; i <= 12; i++) {
