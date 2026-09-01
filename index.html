@@ -124,13 +124,14 @@
 
   /* GŁÓWNY UKŁAD */
   .main-grid {
-    display: grid;
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 10px;
     width: 100%;
   }
   @media(min-width: 900px) {
     .main-grid {
+      display: grid;
       grid-template-columns: 1fr 1fr;
       align-items: start;
     }
@@ -199,7 +200,7 @@
   .btn-hit-huge { background: var(--accent); color: #000; box-shadow: 0 4px 12px rgba(56, 189, 248, 0.4); }
   .btn-stay-huge { background: var(--success); color: #000; box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4); }
 
-  /* LISTA GRACZY I WYLOSOWANYCH KART */
+  /* LISTA GRACZY I WYNIKÓW */
   .players-scroll { display: flex; flex-direction: column; gap: 8px; }
   .player-slot { background: var(--bg-inner); border-radius: 10px; padding: 10px; border-left: 5px solid var(--border); transition: all 0.2s; position: relative; }
   .player-slot.active { border-left-color: var(--warning); background: #1a2f4c; box-shadow: 0 0 15px rgba(56, 189, 248, 0.25); }
@@ -301,7 +302,7 @@
 
   <!-- GŁÓWNY UKŁAD -->
   <div class="main-grid">
-    <!-- PANEL GŁÓWNY: STATYSTYKI, ARENA 3D ORAZ GRACZE I ICH KARTY (WIDOK GŁÓWNY) -->
+    <!-- PANEL 1 (GÓRNY NA TELEFONIE): STATS -> ARENA 3D -> WYNIKI I KARTY GRACZY -->
     <div class="panel">
       <!-- 1. Statystyki -->
       <div class="stats-grid">
@@ -343,16 +344,21 @@
         </div>
       </div>
 
-      <!-- 3. Gracze przy stole i wylosowane karty (WIDOCZNE OD RAZU BEZ SCROLLOWANIA) -->
+      <!-- 3. Gracze przy stole, ich punkty i wylosowane karty (WIDOK GŁÓWNY OD RAZU NA EKRANIE) -->
       <div>
+        <div class="pin-display-badge" id="lobby-badge" style="margin-bottom:8px;">
+          <span id="lobby-title">🎮 PIN: <strong style="color:var(--warning); font-size:1.1rem; letter-spacing:1px;">Lokalnie</strong></span>
+          <span style="font-size:0.75rem; color:var(--text-muted);" id="lobby-sub">Grasz na 1 urządzeniu</span>
+        </div>
+        
         <h3 style="margin: 4px 0 6px 0; font-size:0.95rem; color:var(--text-main);">Gracze przy stole (Karty w grze)</h3>
         <div class="players-scroll" id="players-list"></div>
       </div>
     </div>
 
-    <!-- PANEL BOCZNY (NA TELEFONIE NA SAMYM DOLE): KLAWIATURA POZOSTAŁYCH KART ORAZ LOBBY -->
+    <!-- PANEL 2 (DOLNY NA TELEFONIE PO PRZEWINIĘCIU): KLAWIATURA POZOSTAŁYCH W TALII KART ORAZ OPCJE LOBBY -->
     <div class="panel">
-      <!-- 1. Klawiatura kart pozostałych w talii -->
+      <!-- 1. Klawiatury kart pozostałych w talii -->
       <div>
         <div class="deck-section-title">Karty Numeryczne (Pozostałe w talii)</div>
         <div class="deck-keypad" id="deck-numbers"></div>
@@ -362,13 +368,8 @@
         <div class="deck-keypad actions-grid" id="deck-actions" style="margin-top:4px;"></div>
       </div>
 
-      <!-- 2. Lobby & PIN -->
-      <div class="pin-display-badge" id="lobby-badge">
-        <span id="lobby-title">🎮 PIN: <strong style="color:var(--warning); font-size:1.15rem; letter-spacing:1px;">Lokalnie</strong></span>
-        <span style="font-size:0.75rem; color:var(--text-muted);" id="lobby-sub">Grasz na 1 urządzeniu</span>
-      </div>
-
-      <div id="lobby-setup-box" style="display:flex; flex-direction:column; gap:6px;">
+      <!-- 2. Formularz tworzenia/dołączania -->
+      <div id="lobby-setup-box" style="display:flex; flex-direction:column; gap:6px; margin-top:8px;">
         <div class="lobby-inputs">
           <input type="text" id="my-name-input" class="lobby-input" placeholder="Twoje imię" value="Mikołaj">
           <button class="action-btn-huge" style="background:var(--accent); color:#000; padding:8px 14px; font-size:0.85rem;" onclick="createRoom()">Hostuj</button>
@@ -503,7 +504,7 @@ function handleIncomingAction(action) {
 function createRoom() {
   const myName = document.getElementById("my-name-input").value.trim() || "Host";
   const pin = Math.floor(1000 + Math.random() * 9000).toString();
-  currentRoomTopic = `flip7_v12_${pin}`;
+  currentRoomTopic = `flip7_v13_${pin}`;
   
   document.getElementById("lobby-title").innerText = "Łączenie...";
 
@@ -522,7 +523,7 @@ function createRoom() {
     mqttClient.subscribe(currentRoomTopic + "/actions");
     mqttClient.subscribe(currentRoomTopic + "/join");
 
-    document.getElementById("lobby-title").innerHTML = `🎮 PIN: <strong style="color:var(--warning); font-size:1.15rem; letter-spacing:1px;">${pin}</strong>`;
+    document.getElementById("lobby-title").innerHTML = `🎮 PIN: <strong style="color:var(--warning); font-size:1.1rem; letter-spacing:1px;">${pin}</strong>`;
     document.getElementById("lobby-sub").innerText = `Host: ${myName}`;
     document.getElementById("lobby-setup-box").style.display = "none";
     
@@ -556,7 +557,7 @@ function joinRoom() {
   const myName = document.getElementById("my-name-input").value.trim() || "Gracz";
   if (!pin) { alert("Wpisz 4-cyfrowy PIN!"); return; }
 
-  currentRoomTopic = `flip7_v12_${pin}`;
+  currentRoomTopic = `flip7_v13_${pin}`;
   document.getElementById("lobby-title").innerText = "Dołączanie...";
 
   mqttClient = mqtt.connect(MQTT_BROKER, {
@@ -573,7 +574,7 @@ function joinRoom() {
       mqttClient.publish(currentRoomTopic + "/join", JSON.stringify({ id: myClientId, name: myName }));
     }, 400);
 
-    document.getElementById("lobby-title").innerHTML = `✅ PIN: <strong style="color:var(--success); font-size:1.15rem;">${pin}</strong>`;
+    document.getElementById("lobby-title").innerHTML = `✅ PIN: <strong style="color:var(--success); font-size:1.1rem;">${pin}</strong>`;
     document.getElementById("lobby-sub").innerText = `Połączono: ${myName}`;
     document.getElementById("lobby-setup-box").style.display = "none";
     document.getElementById("host-controls").style.display = "none";
@@ -950,7 +951,6 @@ function resetDeckFull() {
   render();
 }
 
-// FAJERWERKI
 let fireworksInterval = null;
 function launchFireworks() {
   const canvas = document.getElementById("fireworks-canvas");
@@ -1095,7 +1095,7 @@ function render() {
     `;
   }
 
-  // LISTA GRACZY (WIDOCZNA OD RAZU NA STOLE)
+  // LISTA GRACZY
   const playersContainer = document.getElementById("players-list");
   playersContainer.innerHTML = "";
   players.forEach((p, idx) => {
@@ -1126,7 +1126,7 @@ function render() {
     playersContainer.appendChild(div);
   });
 
-  // KLAWIATURY (NA DOLE STRONY)
+  // KLAWIATURY
   const numContainer = document.getElementById("deck-numbers");
   numContainer.innerHTML = "";
   for (let i = 0; i <= 12; i++) {
