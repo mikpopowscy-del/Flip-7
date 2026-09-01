@@ -31,7 +31,7 @@
     gap: 10px;
   }
 
-  /* GÓRNY PASEK BANERÓW NA PC (2 RÓWNE KOLUMNY OBOK SIEBIE) */
+  /* GÓRNY PASEK BANERÓW NA PC */
   .top-banners-grid {
     display: grid;
     grid-template-columns: 1fr;
@@ -122,18 +122,36 @@
     100% { transform: scale(1) translateY(0); }
   }
 
-  /* GŁÓWNY UKŁAD 2-KOLUMNOWY NA PC */
+  /* GŁÓWNY UKŁAD: NA TELEFONIE PRAWY PANEL (GRACZE) JEST PIERWSZY (order: 1), ARENA DRUGA (order: 2), A KLAWIATURA NA DOLE (order: 3) */
   .main-grid {
-    display: grid;
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 10px;
     width: 100%;
   }
   @media(min-width: 900px) {
     .main-grid {
+      display: grid;
       grid-template-columns: 1fr 1fr;
       align-items: start;
     }
+  }
+
+  .panel-left {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    order: 2;
+  }
+  .panel-right {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    order: 1;
+  }
+  @media(min-width: 900px) {
+    .panel-left { order: 1; }
+    .panel-right { order: 2; }
   }
 
   .panel {
@@ -212,7 +230,7 @@
   .card-btn.special { border-color: var(--purple); }
   .card-btn.mod { border-color: var(--warning); }
 
-  /* PRAWY PANEL */
+  /* PRAWY PANEL (LOBBY & GRACZE) */
   .pin-display-badge {
     background: rgba(56, 189, 248, 0.08);
     border: 1px solid var(--border);
@@ -282,7 +300,7 @@
 <body>
 
 <div class="game-wrapper">
-  <!-- GÓRNY PASEK BANERÓW (2 KOLUMNY NA PC) -->
+  <!-- GÓRNY PASEK BANERÓW -->
   <div class="top-banners-grid">
     <div class="turn-banner other-turn" id="global-turn-banner">OCZEKIWANIE NA START</div>
     <div class="special-alert-banner" id="special-action-alert">
@@ -298,10 +316,37 @@
     <div class="flip3-dots" id="flip3-dots-container"></div>
   </div>
 
-  <!-- GŁÓWNY UKŁAD 2 PANELI -->
+  <!-- GŁÓWNY UKŁAD -->
   <div class="main-grid">
-    <!-- LEWY PANEL: STATYSTYKI, STÓŁ 3D, PRZYCISKI & KLAWIATURA -->
-    <div class="panel">
+    <!-- PANEL 1 (NA TELEFONIE WYŚWIETLA SIĘ JAKO PIERWSZY: LOBBY, GRACZE I PRZEKAZANE KARTY) -->
+    <div class="panel panel-right">
+      <div class="pin-display-badge" id="lobby-badge">
+        <span id="lobby-title">🎮 PIN: <strong style="color:var(--warning); font-size:1.15rem; letter-spacing:1px;">Lokalnie</strong></span>
+        <span style="font-size:0.75rem; color:var(--text-muted);" id="lobby-sub">Grasz na 1 urządzeniu</span>
+      </div>
+
+      <div id="lobby-setup-box" style="display:flex; flex-direction:column; gap:6px;">
+        <div class="lobby-inputs">
+          <input type="text" id="my-name-input" class="lobby-input" placeholder="Twoje imię" value="Mikołaj">
+          <button class="action-btn-huge" style="background:var(--accent); color:#000; padding:8px 14px; font-size:0.85rem;" onclick="createRoom()">Hostuj</button>
+        </div>
+        <div class="lobby-inputs">
+          <input type="text" id="room-pin-input" class="lobby-input" placeholder="Wpisz 4-cyfrowy PIN">
+          <button class="action-btn-huge" style="background:#334155; color:#fff; padding:8px 14px; font-size:0.85rem;" onclick="joinRoom()">Dołącz</button>
+        </div>
+      </div>
+
+      <h3 style="margin: 4px 0 2px 0; font-size:0.95rem; color:var(--text-main);">Gracze przy stole (Karty w grze)</h3>
+      <div class="players-scroll" id="players-list"></div>
+
+      <div style="display:flex; gap:8px; margin-top:auto;" id="host-controls">
+        <button class="action-btn-huge" style="background:#6366f1; color:#fff; flex:1; font-size:0.85rem; padding:12px;" onclick="manualShuffle()">🔀 Przetasuj</button>
+        <button class="action-btn-huge" style="background:var(--danger); color:#fff; flex:1; font-size:0.85rem; padding:12px;" onclick="resetDeckFull()">Reset Gry</button>
+      </div>
+    </div>
+
+    <!-- PANEL 2 (NA TELEFONIE: ARENA 3D, DOCIĄGANIE ORAZ NA SAMYM DOLE KARTY KTÓRE ZOSTAŁY DO PRZEWINIĘCIA) -->
+    <div class="panel panel-left">
       <!-- Statystyki -->
       <div class="stats-grid">
         <div class="stat-card">
@@ -342,41 +387,14 @@
         </div>
       </div>
 
-      <!-- Klawiatury kart -->
+      <!-- Klawiatury kart (Karty pozostałe w talii - na telefonie na dole) -->
       <div>
-        <div class="deck-section-title">Karty Numeryczne (0-12)</div>
+        <div class="deck-section-title">Karty Numeryczne (Pozostałe w talii)</div>
         <div class="deck-keypad" id="deck-numbers"></div>
         
-        <div class="deck-section-title">Modyfikatory & Akcje</div>
+        <div class="deck-section-title">Modyfikatory & Akcje w talii</div>
         <div class="deck-keypad specials-grid" id="deck-modifiers"></div>
         <div class="deck-keypad actions-grid" id="deck-actions" style="margin-top:4px;"></div>
-      </div>
-    </div>
-
-    <!-- PRAWY PANEL: LOBBY, LISTA GRACZY I PRZYCISKI KONTROLNE -->
-    <div class="panel">
-      <div class="pin-display-badge" id="lobby-badge">
-        <span id="lobby-title">🎮 PIN: <strong style="color:var(--warning); font-size:1.15rem; letter-spacing:1px;">Lokalnie</strong></span>
-        <span style="font-size:0.75rem; color:var(--text-muted);" id="lobby-sub">Grasz na 1 urządzeniu</span>
-      </div>
-
-      <div id="lobby-setup-box" style="display:flex; flex-direction:column; gap:6px;">
-        <div class="lobby-inputs">
-          <input type="text" id="my-name-input" class="lobby-input" placeholder="Twoje imię" value="Mikołaj">
-          <button class="action-btn-huge" style="background:var(--accent); color:#000; padding:8px 14px; font-size:0.85rem;" onclick="createRoom()">Hostuj</button>
-        </div>
-        <div class="lobby-inputs">
-          <input type="text" id="room-pin-input" class="lobby-input" placeholder="Wpisz 4-cyfrowy PIN">
-          <button class="action-btn-huge" style="background:#334155; color:#fff; padding:8px 14px; font-size:0.85rem;" onclick="joinRoom()">Dołącz</button>
-        </div>
-      </div>
-
-      <h3 style="margin: 4px 0 2px 0; font-size:0.95rem; color:var(--text-main);">Gracze przy stole</h3>
-      <div class="players-scroll" id="players-list"></div>
-
-      <div style="display:flex; gap:8px; margin-top:auto;" id="host-controls">
-        <button class="action-btn-huge" style="background:#6366f1; color:#fff; flex:1; font-size:0.85rem; padding:12px;" onclick="manualShuffle()">🔀 Przetasuj</button>
-        <button class="action-btn-huge" style="background:var(--danger); color:#fff; flex:1; font-size:0.85rem; padding:12px;" onclick="resetDeckFull()">Reset Gry</button>
       </div>
     </div>
   </div>
@@ -498,7 +516,7 @@ function handleIncomingAction(action) {
 function createRoom() {
   const myName = document.getElementById("my-name-input").value.trim() || "Host";
   const pin = Math.floor(1000 + Math.random() * 9000).toString();
-  currentRoomTopic = `flip7_v9_${pin}`;
+  currentRoomTopic = `flip7_v10_${pin}`;
   
   document.getElementById("lobby-title").innerText = "Łączenie...";
 
@@ -551,7 +569,7 @@ function joinRoom() {
   const myName = document.getElementById("my-name-input").value.trim() || "Gracz";
   if (!pin) { alert("Wpisz 4-cyfrowy PIN!"); return; }
 
-  currentRoomTopic = `flip7_v9_${pin}`;
+  currentRoomTopic = `flip7_v10_${pin}`;
   document.getElementById("lobby-title").innerText = "Dołączanie...";
 
   mqttClient = mqtt.connect(MQTT_BROKER, {
@@ -897,7 +915,6 @@ function checkAutoRoundProgression() {
   }
 }
 
-// ROTACJA ROZPOCZYNANIA RUNDY W PRAWO
 function autoStartNextRound() {
   players.forEach(p => {
     p.cards = [];
