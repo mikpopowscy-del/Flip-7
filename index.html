@@ -3,9 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Flip 7 Online Multiplayer P2P</title>
-<!-- Biblioteka do darmowego łączenia telefonów WebRTC -->
-<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<title>Flip 7</title>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <style>
   :root {
     --bg-main: #0b1329;
@@ -31,19 +30,18 @@
   .panel { background: var(--bg-card); border-radius: 10px; border: 1px solid var(--border); padding: 12px; }
   h2, h3 { margin-bottom: 8px; font-size: 1rem; color: var(--accent); }
   
-  /* Panel Połączenia Online */
+  /* LOBBY */
   .lobby-box { background: rgba(56, 189, 248, 0.1); border: 1px solid var(--accent); border-radius: 8px; padding: 10px; margin-bottom: 12px; }
   .lobby-inputs { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
   .lobby-input { background: var(--bg-inner); border: 1px solid var(--border); color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem; flex: 1; }
 
-  /* Gracze */
+  /* GRACZE */
   .player-slot { background: var(--bg-inner); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; border-left: 5px solid var(--border); transition: all 0.2s; }
   .player-slot.active { border-left-color: var(--warning); background: #1e3a5f; box-shadow: 0 0 10px rgba(56, 189, 248, 0.2); }
   .player-slot.busted { border-left-color: var(--danger); opacity: 0.55; }
   .player-slot.frozen, .player-slot.stayed { border-left-color: var(--success); }
   .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
   
-  .player-name-box { display: flex; align-items: center; gap: 6px; }
   .score-badge { font-size: 0.72rem; padding: 3px 6px; border-radius: 4px; font-weight: bold; background: rgba(0,0,0,0.5); }
   .score-badge.total { background: #0284c7; color: #fff; }
   .score-badge.winner { background: var(--warning); color: #000; font-weight: 900; }
@@ -54,7 +52,7 @@
   .card-chip.action { background: var(--purple); }
   .card-chip.shield { background: #059669; }
 
-  /* Klawiatury kart */
+  /* KLAWIATURA */
   .deck-section-title { font-size: 0.75rem; color: var(--text-muted); margin: 6px 0 4px 0; text-transform: uppercase; letter-spacing: 0.5px; font-weight: bold; }
   .deck-keypad { display: grid; grid-template-columns: repeat(auto-fill, minmax(54px, 1fr)); gap: 5px; margin-bottom: 8px; }
   .card-btn { background: var(--bg-inner); border: 1px solid var(--border); color: var(--text-main); border-radius: 6px; padding: 10px 2px; text-align: center; cursor: pointer; touch-action: manipulation; }
@@ -65,7 +63,7 @@
   .card-btn.special { border-color: var(--purple); }
   .card-btn.mod { border-color: var(--warning); }
 
-  /* Przyciski */
+  /* PRZYCISKI */
   .btn-group { display: flex; gap: 6px; margin-top: 6px; }
   button.action-btn { cursor: pointer; border: none; border-radius: 6px; padding: 10px 8px; font-weight: bold; font-size: 0.8rem; touch-action: manipulation; }
   .btn-primary { background: var(--accent); color: #000; }
@@ -74,7 +72,7 @@
   .btn-secondary { background: var(--bg-inner); color: var(--text-main); border: 1px solid var(--border); }
   .btn-shuffle { background: #6366f1; color: #fff; }
 
-  /* Statystyki */
+  /* STATYSTYKI */
   .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
   .stat-card { background: var(--bg-inner); padding: 6px 2px; border-radius: 6px; text-align: center; }
   .stat-card .num { font-size: 1.05rem; font-weight: bold; color: var(--accent); }
@@ -86,7 +84,7 @@
   .prob-table th, .prob-table td { padding: 4px 5px; border-bottom: 1px solid var(--border); }
   .prob-table th { color: var(--text-muted); }
 
-  /* Sekcja 3D */
+  /* 3D ARENA */
   .arena-3d-box {
     background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
     border: 1px solid var(--border);
@@ -100,49 +98,22 @@
     box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
   }
 
-  .deck-3d-wrapper {
-    display: flex;
-    gap: 16px;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 10px;
-    perspective: 800px;
-  }
-
+  .deck-3d-wrapper { display: flex; gap: 16px; align-items: center; justify-content: center; margin-bottom: 10px; perspective: 800px; }
   .card-3d-deck {
-    width: 90px;
-    height: 130px;
+    width: 90px; height: 130px;
     background: repeating-linear-gradient(45deg, #1e3a8a, #1e3a8a 10px, #172554 10px, #172554 20px);
-    border: 3px solid #60a5fa;
-    border-radius: 8px;
+    border: 3px solid #60a5fa; border-radius: 8px;
     box-shadow: 0 0 0 2px #0f172a, 3px 3px 0 #1e293b, 6px 6px 0 #0f172a, 0 12px 20px rgba(0,0,0,0.6);
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.15s, box-shadow 0.15s;
-    user-select: none;
-    text-align: center;
+    cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; user-select: none; text-align: center;
   }
   .card-3d-deck:active { transform: scale(0.95) translateY(4px); }
   .card-3d-deck .deck-title { font-size: 1rem; font-weight: 900; color: #fff; }
   .card-3d-deck .deck-sub { font-size: 0.65rem; color: #93c5fd; font-weight: bold; margin-top: 2px; }
 
   .drawn-3d-card {
-    width: 88px;
-    height: 128px;
-    background: #ffffff;
-    border-radius: 8px;
-    border: 3px solid #cbd5e1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: #0f172a;
-    font-weight: 900;
-    box-shadow: 0 8px 16px rgba(0,0,0,0.4);
-    animation: flipCard 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    width: 88px; height: 128px; background: #ffffff; border-radius: 8px; border: 3px solid #cbd5e1;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; color: #0f172a; font-weight: 900;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.4); animation: flipCard 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   }
   .drawn-3d-card.mod { background: #fef3c7; border-color: #f59e0b; color: #b45309; }
   .drawn-3d-card.action { background: #f3e8ff; border-color: #a855f7; color: #6b21a8; }
@@ -156,7 +127,7 @@
 
   .arena-controls { display: flex; gap: 8px; width: 100%; max-width: 380px; }
 
-  /* Modal */
+  /* MODAL */
   .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 16px; }
   .modal-content { background: var(--bg-card); border: 1px solid var(--accent); border-radius: 10px; padding: 16px; max-width: 360px; width: 100%; }
   .modal-content h3 { margin-bottom: 10px; }
@@ -171,15 +142,15 @@
 <body>
 
 <div class="container">
-  <!-- LEWY PANEL: Lobby Online & Gracze -->
+  <!-- LEWY PANEL -->
   <div class="panel">
-    <!-- POKÓJ ONLINE -->
+    <!-- POKÓJ MULTIPLAYER -->
     <div class="lobby-box">
       <div style="font-size: 0.85rem; font-weight: bold; color: var(--accent);">🌐 Gra Online (Multiplayer)</div>
-      <div id="lobby-status" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">Grasz offline / lokalnie.</div>
+      <div id="lobby-status" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">Tryb offline. Wpisz imię i stwórz lub dołącz.</div>
       
       <div class="lobby-inputs" id="lobby-setup">
-        <input type="text" id="my-name-input" class="lobby-input" placeholder="Twoje imię" value="Gracz 1">
+        <input type="text" id="my-name-input" class="lobby-input" placeholder="Twoje imię" value="Mikołaj">
         <button class="action-btn btn-primary" onclick="createRoom()">Stwórz Pokój (Host)</button>
       </div>
 
@@ -202,7 +173,7 @@
     </div>
   </div>
 
-  <!-- PRAWY PANEL: 3D Deck, Klawiatura, Statystyki -->
+  <!-- PRAWY PANEL -->
   <div class="panel">
     <div id="info-banner" class="banner-info"></div>
 
@@ -210,7 +181,6 @@
       Tryb FLIP 3 dla: <span id="flip3-target-name"></span> (Pozostało: <span id="flip3-count">0</span>)
     </div>
 
-    <!-- Statystyki HUD -->
     <div class="stats-grid">
       <div class="stat-card">
         <div class="num" id="stat-cards-left">94</div>
@@ -233,7 +203,7 @@
     <h3>Rekomendacja</h3>
     <div class="advise-box" id="strategic-advice">Rozpocznij dobieranie kart.</div>
 
-    <!-- DOCIĄGANIE KART 3D -->
+    <!-- 3D DECK -->
     <div class="arena-3d-box">
       <div class="deck-3d-wrapper">
         <div class="card-3d-deck" id="deck-3d-click" onclick="draw3DCard()">
@@ -276,7 +246,7 @@
   </div>
 </div>
 
-<!-- MODAL PRZYDZIAŁU KART AKCJI -->
+<!-- MODAL WYBORU CELU -->
 <div class="modal-overlay" id="target-modal">
   <div class="modal-content">
     <h3 id="modal-card-title">Przydziel kartę akcji</h3>
@@ -287,6 +257,17 @@
 </div>
 
 <script>
+// Konfiguracja STUN serwerów Google zapobiegająca blokowaniu połączeń między różnymi sieciami LTE/Wi-Fi
+const PEER_CONFIG = {
+  config: {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' }
+    ]
+  }
+};
+
 const INITIAL_DECK = {
   "0": 1, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, 
   "7": 7, "8": 8, "9": 9, "10": 10, "11": 11, "12": 12,
@@ -296,8 +277,8 @@ const INITIAL_DECK = {
 
 let deck = {};
 let players = [
-  { id: "local_1", name: "Mikołaj", cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 },
-  { id: "local_2", name: "Mama", cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 }
+  { id: "local_1", name: "Gracz 1", cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 },
+  { id: "local_2", name: "Gracz 2", cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 }
 ];
 let activePlayerIndex = 0;
 let last3DCard = null;
@@ -325,7 +306,7 @@ function getCardsRemainingCount() {
   return Object.values(deck).reduce((a, b) => a + b, 0);
 }
 
-// SYNCHRONIZACJA SIECIOWA
+// SYNCHRONIZACJA
 function broadcastGameState() {
   if (!isHost) return;
   const payload = {
@@ -356,18 +337,21 @@ function handleIncomingAction(action) {
   else if (action.name === "ASSIGN_SPECIAL") confirmSpecialAssignment(action.targetIdx, action.cardKey);
 }
 
-// TWORZENIE I DOŁĄCZANIE DO POKOJU (WEBRTC PEERJS)
+// TWORZENIE POKOJU (HOST)
 function createRoom() {
   const myName = document.getElementById("my-name-input").value.trim() || "Host";
   const pin = Math.floor(1000 + Math.random() * 9000).toString();
-  
-  peer = new Peer(`flip7-room-${pin}`);
+  const roomPeerId = `f7p-${pin}`;
+
+  if (peer) peer.destroy();
+
+  peer = new Peer(roomPeerId, PEER_CONFIG);
   
   peer.on('open', (id) => {
     isHost = true;
     myPeerId = id;
     players = [{ id: id, name: myName, cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 }];
-    document.getElementById("lobby-status").innerHTML = `🎮 Jesteś HOST-em! PIN Pokoju: <strong style="color:var(--warning); font-size:1.1rem;">${pin}</strong>`;
+    document.getElementById("lobby-status").innerHTML = `🎮 Jesteś HOST-em! PIN: <strong style="color:var(--warning); font-size:1.1rem; letter-spacing:2px;">${pin}</strong>`;
     document.getElementById("lobby-setup").style.display = "none";
     document.getElementById("lobby-join").style.display = "none";
     initDeck();
@@ -375,38 +359,56 @@ function createRoom() {
   });
 
   peer.on('connection', (conn) => {
-    connections.push(conn);
+    conn.on('open', () => {
+      connections.push(conn);
+    });
+
     conn.on('data', (data) => {
       if (data.type === "JOIN") {
         players.push({ id: conn.peer, name: data.name, cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 });
-        showNotification(`Gracz ${data.name} dołączył!`);
+        showNotification(`Gracz ${data.name} dołączył do gry!`);
         broadcastGameState();
         render();
       } else if (data.type === "ACTION") {
         handleIncomingAction(data.data);
       }
     });
+
+    conn.on('close', () => {
+      players = players.filter(p => p.id !== conn.peer);
+      broadcastGameState();
+      render();
+    });
   });
 
-  peer.on('error', () => {
-    alert("Błąd tworzenia pokoju. Spróbuj ponownie.");
+  peer.on('error', (err) => {
+    console.error("Peer error:", err);
+    alert("PIN zajęty lub błąd sieci. Spróbuj utworzyć pokój ponownie.");
   });
 }
 
+// DOŁĄCZANIE DO POKOJU (KLIENT)
 function joinRoom() {
   const pin = document.getElementById("room-pin-input").value.trim();
   const myName = document.getElementById("my-name-input").value.trim() || "Gracz";
   if (!pin) { alert("Wpisz 4-cyfrowy PIN!"); return; }
 
-  peer = new Peer();
+  if (peer) peer.destroy();
+
+  document.getElementById("lobby-status").innerText = "Łączenie z pokojem...";
+
+  peer = new Peer(PEER_CONFIG);
+  
   peer.on('open', (id) => {
     myPeerId = id;
-    const conn = peer.connect(`flip7-room-${pin}`);
+    const targetRoomId = `f7p-${pin}`;
+    const conn = peer.connect(targetRoomId, { reliable: true });
+
     conn.on('open', () => {
       connections = [conn];
       isHost = false;
       conn.send({ type: "JOIN", name: myName });
-      document.getElementById("lobby-status").innerHTML = `✅ Połączono z pokojem: <strong>${pin}</strong>`;
+      document.getElementById("lobby-status").innerHTML = `✅ Połączono z PIN: <strong style="color:var(--success)">${pin}</strong>`;
       document.getElementById("lobby-setup").style.display = "none";
       document.getElementById("lobby-join").style.display = "none";
       document.getElementById("host-controls").style.display = "none";
@@ -422,6 +424,17 @@ function joinRoom() {
         render();
       }
     });
+
+    conn.on('error', (err) => {
+      console.error(err);
+      alert("Nie udało się połączyć z tym kodem PIN. Upewnij się, że Host stworzył pokój.");
+      document.getElementById("lobby-status").innerText = "Błąd połączenia.";
+    });
+  });
+
+  peer.on('error', (err) => {
+    console.error("Peer error:", err);
+    alert("Błąd połączenia z serwerem. Sprawdź połączenie z internetem.");
   });
 }
 
@@ -748,7 +761,6 @@ function render() {
   const effectivePlayerIdx = flip3State.active ? flip3State.targetPlayerIndex : activePlayerIndex;
   const currPlayer = players[effectivePlayerIdx] || players[0];
 
-  // Blokowanie przycisków, jeśli nie jest to tura danego telefonu w trybie online
   const isMyTurn = (!peer || !myPeerId) ? true : (currPlayer.id === myPeerId);
   document.getElementById("btn-hit-3d").disabled = !isMyTurn || currPlayer.status !== "active";
   document.getElementById("btn-stay-3d").disabled = !isMyTurn || currPlayer.status !== "active";
@@ -831,7 +843,7 @@ function render() {
     playersContainer.appendChild(div);
   });
 
-  // Klawiatura numeryczna
+  // Klawiatura
   const numContainer = document.getElementById("deck-numbers");
   numContainer.innerHTML = "";
   for (let i = 0; i <= 12; i++) {
@@ -845,7 +857,6 @@ function render() {
     numContainer.appendChild(btn);
   }
 
-  // Modyfikatory
   const modContainer = document.getElementById("deck-modifiers");
   modContainer.innerHTML = "";
   ["+2", "+4", "+6", "+8", "+10", "x2"].forEach(card => {
@@ -858,7 +869,6 @@ function render() {
     modContainer.appendChild(btn);
   });
 
-  // Akcje
   const actContainer = document.getElementById("deck-actions");
   actContainer.innerHTML = "";
   ["Freeze", "Flip3", "2ndChance"].forEach(card => {
@@ -871,7 +881,6 @@ function render() {
     actContainer.appendChild(btn);
   });
 
-  // Tabela
   const tbody = document.getElementById("prob-tbody");
   tbody.innerHTML = "";
   for (const [card, count] of Object.entries(deck)) {
