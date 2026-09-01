@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Flip 7 Fast Online</title>
+<title>Flip 7 Fast Online Pro</title>
 <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
 <style>
   :root {
@@ -29,6 +29,7 @@
 
   .panel { background: var(--bg-card); border-radius: 14px; border: 1px solid var(--border); padding: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
 
+  /* GŁÓWNY BANER TURY */
   .turn-banner {
     width: 100%;
     padding: 12px;
@@ -56,32 +57,92 @@
     100% { transform: scale(1.02); }
   }
 
+  /* SPECJALNY BANER FLIP 3 Z LICZNIKIEM DOCIĄGNIĘĆ */
+  .flip3-active-box {
+    display: none;
+    background: linear-gradient(135deg, #6b21a8 0%, #a855f7 100%);
+    border: 2px solid #e9d5ff;
+    border-radius: 12px;
+    padding: 10px;
+    text-align: center;
+    box-shadow: 0 0 25px rgba(168, 85, 247, 0.8);
+    animation: popFlip3 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  @keyframes popFlip3 {
+    0% { transform: scale(0.9); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .flip3-dots { display: flex; justify-content: center; gap: 8px; margin-top: 6px; }
+  .flip3-dot { width: 14px; height: 14px; border-radius: 50%; background: rgba(255,255,255,0.3); border: 2px solid #fff; }
+  .flip3-dot.active { background: #fbbf24; border-color: #fbbf24; box-shadow: 0 0 10px #fbbf24; }
+
+  /* DUŻE POWIADOMIENIE O PRZEKAZANIU KARTY */
+  .special-alert-banner {
+    display: none;
+    background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+    color: #fff;
+    border: 2px solid #c084fc;
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+    box-shadow: 0 0 25px rgba(168, 85, 247, 0.7);
+    animation: alertBounce 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  .special-alert-banner.freeze-mode {
+    background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+    border-color: #7dd3fc;
+    box-shadow: 0 0 25px rgba(56, 189, 248, 0.7);
+  }
+  .special-alert-banner.bust-mode {
+    background: linear-gradient(135deg, #b91c1c 0%, #ef4444 100%);
+    border-color: #fca5a5;
+    box-shadow: 0 0 25px rgba(239, 68, 68, 0.7);
+  }
+  .special-alert-banner.flip7-mode {
+    background: linear-gradient(135deg, #d97706 0%, #fbbf24 100%);
+    border-color: #fef08a;
+    color: #000;
+    box-shadow: 0 0 25px rgba(251, 191, 36, 0.9);
+  }
+  .special-alert-title { font-size: 1.15rem; font-weight: 900; letter-spacing: 0.5px; margin-bottom: 2px; }
+  .special-alert-desc { font-size: 0.9rem; font-weight: 800; opacity: 0.95; }
+  
+  @keyframes alertBounce {
+    0% { transform: scale(0.8) translateY(-10px); opacity: 0; }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+  }
+
+  /* LOBBY */
   .lobby-box { background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 10px; padding: 10px; }
   .lobby-inputs { display: flex; gap: 6px; margin-top: 6px; }
   .lobby-input { background: var(--bg-inner); border: 1px solid var(--border); color: #fff; padding: 10px; border-radius: 8px; font-size: 0.85rem; flex: 1; }
 
-  .players-scroll { display: flex; flex-direction: column; gap: 6px; }
-  .player-slot { background: var(--bg-inner); border-radius: 10px; padding: 8px 10px; border-left: 5px solid var(--border); transition: all 0.2s; }
+  /* LISTA GRACZY */
+  .players-scroll { display: flex; flex-direction: column; gap: 8px; }
+  .player-slot { background: var(--bg-inner); border-radius: 10px; padding: 10px; border-left: 5px solid var(--border); transition: all 0.2s; position: relative; }
   .player-slot.active { border-left-color: var(--warning); background: #1a2f4c; }
   .player-slot.busted { border-left-color: var(--danger); opacity: 0.5; }
   .player-slot.frozen, .player-slot.stayed { border-left-color: var(--success); }
-  .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
   
-  .score-badge { font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; font-weight: 800; background: rgba(0,0,0,0.4); }
+  .score-badge { font-size: 0.75rem; padding: 3px 7px; border-radius: 4px; font-weight: 800; background: rgba(0,0,0,0.4); }
   .score-badge.total { background: #0284c7; color: #fff; }
 
-  .cards-list { display: flex; flex-wrap: wrap; gap: 3px; min-height: 20px; }
-  .card-chip { font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; background: #0284c7; font-weight: 800; }
-  .card-chip.mod { background: #d97706; }
-  .card-chip.action { background: var(--purple); }
-  .card-chip.shield { background: #059669; }
+  /* KARTY W RĘKACH */
+  .cards-list { display: flex; flex-wrap: wrap; gap: 5px; min-height: 24px; }
+  .card-chip { font-size: 0.82rem; padding: 4px 8px; border-radius: 6px; background: #0284c7; font-weight: 900; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+  .card-chip.mod { background: #d97706; color: #fff; border: 1px solid #f59e0b; }
+  .card-chip.action { background: #7e22ce; color: #fff; border: 1px solid #c084fc; }
+  .card-chip.shield { background: #047857; color: #fff; border: 1px solid #34d399; }
 
+  /* STATYSTYKI */
   .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 8px; }
   .stat-card { background: var(--bg-inner); padding: 8px 2px; border-radius: 8px; text-align: center; }
   .stat-card .num { font-size: 1.1rem; font-weight: 900; color: var(--accent); }
   .stat-card .num.danger { color: var(--danger); }
   .stat-card .lbl { font-size: 0.62rem; color: var(--text-muted); margin-top: 2px; text-transform: uppercase; }
 
+  /* 3D ARENA */
   .arena-box {
     background: radial-gradient(circle at center, #1e293b 0%, #0b1329 100%);
     border: 1px solid var(--border);
@@ -113,6 +174,7 @@
   .drawn-card-slot .c-val { font-size: 2.2rem; }
   .drawn-card-slot .c-lbl { font-size: 0.65rem; text-transform: uppercase; }
 
+  /* PRZYCISKI KCIUKOWE */
   .mobile-main-controls { display: grid; grid-template-columns: 1.2fr 1fr; gap: 8px; width: 100%; }
   button.action-btn-huge {
     cursor: pointer; border: none; border-radius: 10px; padding: 14px 10px;
@@ -124,6 +186,7 @@
   .btn-hit-huge { background: var(--accent); color: #000; box-shadow: 0 4px 12px rgba(56, 189, 248, 0.4); }
   .btn-stay-huge { background: var(--success); color: #000; box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4); }
 
+  /* KLAWIATURA */
   .deck-section-title { font-size: 0.72rem; color: var(--text-muted); margin: 6px 0 3px 0; text-transform: uppercase; font-weight: bold; }
   .deck-keypad { display: grid; grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: 4px; margin-bottom: 6px; }
   .card-btn { background: var(--bg-inner); border: 1px solid var(--border); color: var(--text-main); border-radius: 6px; padding: 8px 1px; text-align: center; }
@@ -133,6 +196,7 @@
   .card-btn.special { border-color: var(--purple); }
   .card-btn.mod { border-color: var(--warning); }
 
+  /* POP-UP ZWYCIĘZCY */
   .winner-modal {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center;
@@ -142,24 +206,36 @@
     background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
     border: 2px solid var(--gold); border-radius: 20px; padding: 24px 16px;
     text-align: center; max-width: 360px; width: 100%; box-shadow: 0 0 30px var(--gold);
-    position: relative; z-index: 10000; animation: popWinner 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  }
-  @keyframes popWinner {
-    0% { transform: scale(0.4); opacity: 0; }
-    100% { transform: scale(1); opacity: 1; }
+    position: relative; z-index: 10000;
   }
   #fireworks-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9998; }
 
-  .target-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 5000; padding: 16px; }
-  .target-content { background: var(--bg-card); border: 1px solid var(--accent); border-radius: 12px; padding: 16px; max-width: 340px; width: 100%; }
-  .target-btn { width: 100%; padding: 12px; margin-bottom: 6px; background: var(--bg-inner); border: 1px solid var(--border); color: #fff; border-radius: 8px; text-align: left; font-weight: bold; display: flex; justify-content: space-between; }
+  /* MODAL CELU */
+  .target-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 5000; padding: 16px; }
+  .target-content { background: var(--bg-card); border: 2px solid var(--purple); border-radius: 14px; padding: 16px; max-width: 340px; width: 100%; }
+  .target-btn { width: 100%; padding: 14px 12px; margin-bottom: 6px; background: var(--bg-inner); border: 1px solid var(--border); color: #fff; border-radius: 8px; text-align: left; font-weight: bold; display: flex; justify-content: space-between; }
 </style>
 </head>
 <body>
 
 <div class="container">
+  <!-- GŁÓWNY BANER TURY -->
   <div class="turn-banner other-turn" id="global-turn-banner">OCZEKIWANIE NA START</div>
 
+  <!-- SPECJALNY BANER TRYBU FLIP 3 Z DOCIĄGNIĘCIAMI -->
+  <div class="flip3-active-box" id="flip3-status-box">
+    <div style="font-weight: 900; font-size: 0.95rem; text-transform: uppercase;">⚡ TRYB FLIP 3: <span id="flip3-target-player" style="color:#fbbf24;"></span></div>
+    <div style="font-size: 0.78rem; margin-top:2px;">Wymuszone dociągnięcia: <strong id="flip3-draw-counter">3 z 3</strong></div>
+    <div class="flip3-dots" id="flip3-dots-container"></div>
+  </div>
+
+  <!-- DUŻY BANER INFORMACYJNY -->
+  <div class="special-alert-banner" id="special-action-alert">
+    <div class="special-alert-title" id="alert-title">KARTA SPECJALNA!</div>
+    <div class="special-alert-desc" id="alert-desc">Gracz użył karty na przeciwniku.</div>
+  </div>
+
+  <!-- GŁÓWNA KONSOLA GRY -->
   <div class="panel">
     <div class="stats-grid">
       <div class="stat-card">
@@ -180,6 +256,7 @@
       </div>
     </div>
 
+    <!-- ARENA 3D -->
     <div class="arena-box">
       <div class="deck-row">
         <div class="card-3d-deck" id="deck-3d-click" onclick="draw3DCard()">
@@ -199,6 +276,7 @@
       </div>
     </div>
 
+    <!-- KLAWIATURY -->
     <div style="margin-top:10px;">
       <div class="deck-section-title">Karty Numeryczne (0-12)</div>
       <div class="deck-keypad" id="deck-numbers"></div>
@@ -208,6 +286,7 @@
     </div>
   </div>
 
+  <!-- PANEL BOCZNY -->
   <div class="panel">
     <div class="lobby-box" id="lobby-container">
       <div style="font-size:0.8rem; font-weight:bold; color:var(--accent);" id="lobby-title">🌐 Tryb Online</div>
@@ -231,6 +310,7 @@
   </div>
 </div>
 
+<!-- POP-UP ZWYCIĘZCY -->
 <div class="winner-modal" id="winner-modal">
   <canvas id="fireworks-canvas"></canvas>
   <div class="winner-box">
@@ -242,11 +322,12 @@
   </div>
 </div>
 
+<!-- MODAL CELU -->
 <div class="target-modal" id="target-modal">
   <div class="target-content">
-    <h3 id="modal-card-title" style="color:var(--accent); margin-bottom:10px; font-size:1rem;">Przydziel kartę</h3>
+    <h3 id="modal-card-title" style="color:var(--accent); margin-bottom:10px; font-size:1.1rem;">Przydziel kartę</h3>
     <div id="modal-target-list"></div>
-    <button class="action-btn-huge" style="width:100%; background:#334155; color:#fff; font-size:0.8rem; padding:10px; margin-top:6px;" onclick="closeModal()">Anuluj</button>
+    <button class="action-btn-huge" style="width:100%; background:#334155; color:#fff; font-size:0.85rem; padding:10px; margin-top:6px;" onclick="closeModal()">Anuluj</button>
   </div>
 </div>
 
@@ -263,18 +344,25 @@ let players = [
   { id: "local_1", name: "Gracz 1", cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 }
 ];
 let activePlayerIndex = 0;
-let last3DCard = null;
+let lastDrawnCard = null;
 
 let flip3State = { active: false, targetPlayerIndex: null, remainingDraws: 0, returnPlayerIndex: null };
 let pendingSpecialCard = null;
 
-// GWARANTOWANY BROKER MQTT (EMQX WSS)
+// MULTIPLAYER (EMQX WSS)
 const MQTT_BROKER = "wss://broker.emqx.io:8084/mqtt";
 let mqttClient = null;
 let currentRoomTopic = null;
 let isHost = false;
 let myClientId = "p_" + Math.random().toString(36).substring(2, 10);
 let joinInterval = null;
+let alertTimeout = null;
+
+function vibrate(pattern) {
+  if (navigator.vibrate) {
+    try { navigator.vibrate(pattern); } catch(e){}
+  }
+}
 
 function initDeck() {
   deck = JSON.parse(JSON.stringify(INITIAL_DECK));
@@ -284,9 +372,35 @@ function getCardsRemainingCount() {
   return Object.values(deck).reduce((a, b) => a + b, 0);
 }
 
-function broadcastGameState() {
+function triggerActionBanner(title, desc, mode = "special") {
+  const alertBox = document.getElementById("special-action-alert");
+  document.getElementById("alert-title").innerText = title;
+  document.getElementById("alert-desc").innerText = desc;
+  
+  alertBox.className = "special-alert-banner";
+  if (mode === "freeze") { alertBox.classList.add("freeze-mode"); vibrate([100, 50, 100]); }
+  else if (mode === "bust") { alertBox.classList.add("bust-mode"); vibrate([200, 100, 200]); }
+  else if (mode === "flip7") { alertBox.classList.add("flip7-mode"); vibrate([50, 50, 50, 50, 100]); }
+  else { vibrate(60); }
+  
+  alertBox.style.display = "block";
+  clearTimeout(alertTimeout);
+  alertTimeout = setTimeout(() => {
+    alertBox.style.display = "none";
+  }, 4500);
+}
+
+function broadcastGameState(actionAlertData = null) {
   if (!isHost || !mqttClient || !currentRoomTopic) return;
-  const payload = { type: "SYNC", deck, players, activePlayerIndex, last3DCard, flip3State };
+  const payload = { 
+    type: "SYNC", 
+    deck, 
+    players, 
+    activePlayerIndex, 
+    lastDrawnCard, 
+    flip3State,
+    alert: actionAlertData 
+  };
   mqttClient.publish(currentRoomTopic + "/state", JSON.stringify(payload));
 }
 
@@ -307,9 +421,9 @@ function handleIncomingAction(action) {
 function createRoom() {
   const myName = document.getElementById("my-name-input").value.trim() || "Host";
   const pin = Math.floor(1000 + Math.random() * 9000).toString();
-  currentRoomTopic = `flip7_stable_${pin}`;
+  currentRoomTopic = `flip7_v5_${pin}`;
   
-  document.getElementById("lobby-title").innerText = "Łączenie z serwerem...";
+  document.getElementById("lobby-title").innerText = "Łączenie...";
 
   mqttClient = mqtt.connect(MQTT_BROKER, {
     clientId: myClientId,
@@ -340,6 +454,7 @@ function createRoom() {
         const existing = players.find(x => x.id === data.id);
         if (!existing) {
           players.push({ id: data.id, name: data.name, cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 });
+          triggerActionBanner("NOWY GRACZ", `${data.name} dołączył do stołu!`);
         } else {
           existing.name = data.name;
         }
@@ -357,8 +472,8 @@ function joinRoom() {
   const myName = document.getElementById("my-name-input").value.trim() || "Gracz";
   if (!pin) { alert("Wpisz 4-cyfrowy PIN!"); return; }
 
-  currentRoomTopic = `flip7_stable_${pin}`;
-  document.getElementById("lobby-title").innerText = "Dołączanie do gry...";
+  currentRoomTopic = `flip7_v5_${pin}`;
+  document.getElementById("lobby-title").innerText = "Dołączanie...";
 
   mqttClient = mqtt.connect(MQTT_BROKER, {
     clientId: myClientId,
@@ -370,7 +485,6 @@ function joinRoom() {
     isHost = false;
     mqttClient.subscribe(currentRoomTopic + "/state");
     
-    // Wysyłaj pakiet join dopóki nie otrzymasz stanu gry
     joinInterval = setInterval(() => {
       mqttClient.publish(currentRoomTopic + "/join", JSON.stringify({ id: myClientId, name: myName }));
     }, 400);
@@ -392,8 +506,13 @@ function joinRoom() {
         deck = data.deck;
         players = data.players;
         activePlayerIndex = data.activePlayerIndex;
-        last3DCard = data.last3DCard;
+        lastDrawnCard = data.lastDrawnCard;
         flip3State = data.flip3State;
+
+        if (data.alert) {
+          triggerActionBanner(data.alert.title, data.alert.desc, data.alert.mode);
+        }
+
         render();
       }
     } catch(e){}
@@ -407,7 +526,7 @@ function checkDeckExhaustion() {
 function manualShuffle() {
   if (!isHost && mqttClient) return;
   initDeck();
-  broadcastGameState();
+  broadcastGameState({ title: "PRZETASOWANIE", desc: "Talia 94 kart została przetasowana!", mode: "special" });
   render();
 }
 
@@ -457,13 +576,14 @@ function draw3DCard() {
   if (pool.length === 0) return;
 
   const drawn = pool[Math.floor(Math.random() * pool.length)];
-  last3DCard = drawn;
+  lastDrawnCard = drawn;
   handleCardClick(drawn);
 }
 
 function handleCardClick(cardKey) {
   if (deck[cardKey] <= 0) return;
-  last3DCard = cardKey;
+  lastDrawnCard = cardKey;
+  vibrate(30);
 
   if (!isHost && mqttClient) {
     sendActionToHost({ name: "CLICK_CARD", card: cardKey });
@@ -503,10 +623,21 @@ function handleCardClick(cardKey) {
   } else {
     deck[cardKey]--;
     checkDeckExhaustion();
+    
+    let alertData = null;
+    if (cardKey.startsWith("+") || cardKey === "x2" || cardKey === "2ndChance") {
+      alertData = {
+        title: "KARTA BONUSOWA!",
+        desc: `${players[activePlayerIndex].name} zdobywa [${cardKey}]!`,
+        mode: "special"
+      };
+      triggerActionBanner(alertData.title, alertData.desc, alertData.mode);
+    }
+
     applyCardToPlayer(activePlayerIndex, cardKey);
     advanceTurnToNextActive();
     checkAutoRoundProgression();
-    broadcastGameState();
+    broadcastGameState(alertData);
     render();
   }
 }
@@ -541,9 +672,11 @@ function applyCardToPlayer(playerIdx, cardKey) {
       if (idx2nd > -1) p.cards.splice(idx2nd, 1);
       const lastDupe = p.cards.lastIndexOf(bustCheck.dupeCard);
       if (lastDupe > -1) p.cards.splice(lastDupe, 1);
+      triggerActionBanner("TARCZA OCHRONIŁA!", `${p.name} uratowany przez Second Chance!`, "special");
     } else {
       p.status = "busted";
       p.roundScore = 0;
+      triggerActionBanner("💥 BUST!", `${p.name} zdublował [${bustCheck.dupeCard}] i odpada w tej rundzie!`, "bust");
       return;
     }
   }
@@ -554,13 +687,14 @@ function applyCardToPlayer(playerIdx, cardKey) {
   if (scoreData.uniqueCount >= 7) {
     p.status = "stayed";
     p.totalScore += p.roundScore;
+    triggerActionBanner("🎉 FLIP 7!", `${p.name} zdobywa 7 unikalnych kart (+15 bonus) i zatrzymuje ${p.roundScore} pkt!`, "flip7");
     checkWinner();
   }
 }
 
 function openSpecialModal(cardKey) {
   const modal = document.getElementById("target-modal");
-  document.getElementById("modal-card-title").innerText = `Komu przydzielić: ${cardKey}?`;
+  document.getElementById("modal-card-title").innerText = `Wybierz cel dla: ${cardKey}`;
   
   const targetList = document.getElementById("modal-target-list");
   targetList.innerHTML = "";
@@ -570,7 +704,7 @@ function openSpecialModal(cardKey) {
     const btn = document.createElement("button");
     btn.className = "target-btn";
     btn.disabled = !isAvailable;
-    btn.innerHTML = `<span>${p.name}</span> <span style="font-size: 0.72rem; color: ${isAvailable ? 'var(--accent)' : 'var(--text-muted)'}">${isAvailable ? p.roundScore + ' pkt' : p.status}</span>`;
+    btn.innerHTML = `<span>${p.name}</span> <span style="font-size: 0.78rem; color: ${isAvailable ? 'var(--accent)' : 'var(--text-muted)'}">${isAvailable ? p.roundScore + ' pkt w rundzie' : p.status}</span>`;
     
     if (isAvailable) {
       btn.onclick = () => {
@@ -595,9 +729,29 @@ function confirmSpecialAssignment(targetIdx, cardKeyOverride) {
   deck[cardKey]--;
   checkDeckExhaustion();
 
+  const sourceName = players[activePlayerIndex] ? players[activePlayerIndex].name : "Gracz";
+  const targetName = players[targetIdx] ? players[targetIdx].name : "Gracz";
+
+  let alertData = null;
+  if (cardKey === "Freeze") {
+    alertData = {
+      title: "❄️ FREEZE!",
+      desc: `${sourceName.toUpperCase()} zamroził gracza ${targetName.toUpperCase()}!`,
+      mode: "freeze"
+    };
+  } else if (cardKey === "Flip3") {
+    alertData = {
+      title: "⚡ FLIP 3!",
+      desc: `${sourceName.toUpperCase()} wymusił 3 dociągnięcia dla ${targetName.toUpperCase()}!`,
+      mode: "special"
+    };
+  }
+
+  if (alertData) triggerActionBanner(alertData.title, alertData.desc, alertData.mode);
+
   if (cardKey === "Flip3") {
     flip3State = { active: true, targetPlayerIndex: targetIdx, remainingDraws: 3, returnPlayerIndex: activePlayerIndex };
-    broadcastGameState();
+    broadcastGameState(alertData);
     render();
     return;
   }
@@ -605,7 +759,7 @@ function confirmSpecialAssignment(targetIdx, cardKeyOverride) {
   applyCardToPlayer(targetIdx, cardKey);
   advanceTurnToNextActive();
   checkAutoRoundProgression();
-  broadcastGameState();
+  broadcastGameState(alertData);
   render();
 }
 
@@ -630,18 +784,26 @@ function playerStay(idx) {
     p.status = "stayed";
     p.roundScore = calculateRoundScore(p.cards).total;
     p.totalScore += p.roundScore;
+    
+    const alertData = {
+      title: "🛑 ZATRZYMANIE (STAY)",
+      desc: `${p.name} zabezpiecza ${p.roundScore} pkt (Suma: ${p.totalScore})`,
+      mode: "special"
+    };
+    triggerActionBanner(alertData.title, alertData.desc, alertData.mode);
+
     checkWinner();
     advanceTurnToNextActive();
     checkAutoRoundProgression();
+    broadcastGameState(alertData);
   }
-  broadcastGameState();
   render();
 }
 
 function checkAutoRoundProgression() {
   const anyActive = players.some(p => p.status === "active");
   if (!anyActive) {
-    setTimeout(autoStartNextRound, 1000);
+    setTimeout(autoStartNextRound, 1200);
   }
 }
 
@@ -655,7 +817,11 @@ function autoStartNextRound() {
   flip3State.active = false;
   activePlayerIndex = 0;
   if (getCardsRemainingCount() < 15) initDeck();
-  broadcastGameState();
+  
+  const alertData = { title: "🔁 NOWA RUNDA", desc: "Wszyscy gracze wracają do gry!", mode: "special" };
+  triggerActionBanner(alertData.title, alertData.desc, alertData.mode);
+  
+  broadcastGameState(alertData);
   render();
 }
 
@@ -671,11 +837,12 @@ function resetDeckFull() {
   });
   flip3State.active = false;
   activePlayerIndex = 0;
-  last3DCard = null;
-  broadcastGameState();
+  lastDrawnCard = null;
+  broadcastGameState({ title: "RESET GRY", desc: "Gra rozpoczęta od zera!", mode: "special" });
   render();
 }
 
+// FAJERWERKI
 let fireworksInterval = null;
 function launchFireworks() {
   const canvas = document.getElementById("fireworks-canvas");
@@ -687,7 +854,7 @@ function launchFireworks() {
   const colors = ['#f59e0b', '#38bdf8', '#ef4444', '#10b981', '#a855f7', '#fbbf24'];
 
   function createExplosion(x, y) {
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 45; i++) {
       const angle = Math.random() * Math.PI * 2;
       const speed = Math.random() * 5 + 2;
       particles.push({
@@ -703,7 +870,7 @@ function launchFireworks() {
 
   fireworksInterval = setInterval(() => {
     createExplosion(Math.random() * canvas.width, Math.random() * (canvas.height * 0.6));
-  }, 400);
+  }, 350);
 
   function animate() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -756,6 +923,7 @@ function render() {
   const isMyTurn = !isOnline ? true : (currPlayer && currPlayer.id === myClientId);
   const canClick = isMyTurn && currPlayer && currPlayer.status === "active";
 
+  // WIDOCZNY BANER TURY
   const turnBanner = document.getElementById("global-turn-banner");
   if (canClick) {
     turnBanner.className = "turn-banner my-turn";
@@ -765,10 +933,31 @@ function render() {
     turnBanner.innerHTML = `⏳ TURA GRACZA: <strong>${currPlayer ? currPlayer.name.toUpperCase() : ''}</strong>`;
   }
 
+  // BANER ODLICZANIA FLIP 3
+  const flip3Box = document.getElementById("flip3-status-box");
+  if (flip3State.active) {
+    flip3Box.style.display = "block";
+    const targetP = players[flip3State.targetPlayerIndex];
+    document.getElementById("flip3-target-player").innerText = targetP ? targetP.name.toUpperCase() : "";
+    document.getElementById("flip3-draw-counter").innerText = `Pozostało dociągnięć: ${flip3State.remainingDraws}/3`;
+    
+    const dotsBox = document.getElementById("flip3-dots-container");
+    dotsBox.innerHTML = "";
+    for (let i = 0; i < 3; i++) {
+      const dot = document.createElement("div");
+      dot.className = "flip3-dot" + (i < flip3State.remainingDraws ? " active" : "");
+      dotsBox.appendChild(dot);
+    }
+  } else {
+    flip3Box.style.display = "none";
+  }
+
+  // PRZYCISKI
   document.getElementById("btn-hit-huge").disabled = !canClick;
-  document.getElementById("btn-stay-huge").disabled = !canClick;
+  document.getElementById("btn-stay-huge").disabled = !canClick || flip3State.active; // W trakcie Flip 3 gracz MUSI dociągać
   document.getElementById("deck-3d-click").style.pointerEvents = canClick ? "auto" : "none";
 
+  // STATYSTYKI
   let bustCardsCount = 0;
   const currentNumbers = new Set(currPlayer.cards.filter(c => !isNaN(c)).map(c => parseInt(c, 10)));
   for (const [card, count] of Object.entries(deck)) {
@@ -788,16 +977,17 @@ function render() {
   document.getElementById("deck-3d-count").innerText = `${totalCardsLeft} kart`;
 
   const slot3D = document.getElementById("slot-3d-card");
-  if (last3DCard) {
-    let typeClass = !isNaN(last3DCard) ? '' : (last3DCard.startsWith('+') || last3DCard === 'x2' ? 'mod' : 'action');
+  if (lastDrawnCard) {
+    let typeClass = !isNaN(lastDrawnCard) ? '' : (lastDrawnCard.startsWith('+') || lastDrawnCard === 'x2' ? 'mod' : 'action');
     slot3D.innerHTML = `
       <div class="drawn-card-slot ${typeClass}">
-        <span class="c-lbl">${!isNaN(last3DCard) ? 'NUMER' : 'SPECJALNA'}</span>
-        <div class="c-val">${last3DCard}</div>
+        <span class="c-lbl">${!isNaN(lastDrawnCard) ? 'NUMER' : 'SPECJALNA'}</span>
+        <div class="c-val">${lastDrawnCard}</div>
       </div>
     `;
   }
 
+  // LISTA GRACZY
   const playersContainer = document.getElementById("players-list");
   playersContainer.innerHTML = "";
   players.forEach((p, idx) => {
@@ -824,6 +1014,7 @@ function render() {
     playersContainer.appendChild(div);
   });
 
+  // KLAWIATURA
   const numContainer = document.getElementById("deck-numbers");
   numContainer.innerHTML = "";
   for (let i = 0; i <= 12; i++) {
