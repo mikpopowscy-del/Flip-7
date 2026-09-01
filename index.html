@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Flip 7 </title>
-<!-- Błyskawiczna biblioteka WebSocket / MQTT (Zero lagów przy łączeniu) -->
+<title>Flip 7 Fast Online</title>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <style>
   :root {
@@ -147,7 +146,7 @@
   <div class="panel">
     <div class="lobby-box">
       <div style="font-size: 0.85rem; font-weight: bold; color: var(--accent);">🌐 Szybki Multiplayer Online</div>
-      <div id="lobby-status" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">Wpisz imię i stwórz lub dołącz do pokoju.</div>
+      <div id="lobby-status" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">Wpisz imię i stwórz pokój lub dołącz.</div>
       
       <div class="lobby-inputs" id="lobby-setup">
         <input type="text" id="my-name-input" class="lobby-input" placeholder="Twoje imię" value="Mikołaj">
@@ -266,8 +265,7 @@ const INITIAL_DECK = {
 
 let deck = {};
 let players = [
-  { id: "local_1", name: "Gracz 1", cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 },
-  { id: "local_2", name: "Gracz 2", cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 }
+  { id: "local_1", name: "Gracz 1", cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 }
 ];
 let activePlayerIndex = 0;
 let last3DCard = null;
@@ -281,11 +279,11 @@ let flip3State = {
 
 let pendingSpecialCard = null;
 
-// MULTIPLAYER VIA WEBSOCKETS (MQTT)
+// MULTIPLAYER STATE
 let mqttClient = null;
 let currentRoomTopic = null;
 let isHost = false;
-let myClientId = "p_" + Math.random().toString(16).substr(2, 8);
+let myClientId = "p_" + Math.random().toString(16).substring(2, 10);
 
 function initDeck() {
   deck = JSON.parse(JSON.stringify(INITIAL_DECK));
@@ -295,7 +293,7 @@ function getCardsRemainingCount() {
   return Object.values(deck).reduce((a, b) => a + b, 0);
 }
 
-// BŁYSKAWICZNA SYNCHRONIZACJA
+// SYNCHRONIZACJA
 function broadcastGameState() {
   if (!isHost || !mqttClient || !currentRoomTopic) return;
   const payload = {
@@ -306,14 +304,14 @@ function broadcastGameState() {
     last3DCard,
     flip3State
   };
-  mqttClient.publish(currentRoomTopic + "/state", JSON.stringify(payload));
+  mqttClient.publish(currentRoomTopic + "/state", JSON.stringify(payload), { qos: 1 });
 }
 
 function sendActionToHost(actionData) {
   if (isHost) {
     handleIncomingAction(actionData);
   } else if (mqttClient && currentRoomTopic) {
-    mqttClient.publish(currentRoomTopic + "/actions", JSON.stringify({ senderId: myClientId, action: actionData }));
+    mqttClient.publish(currentRoomTopic + "/actions", JSON.stringify({ senderId: myClientId, action: actionData }), { qos: 1 });
   }
 }
 
@@ -328,11 +326,10 @@ function handleIncomingAction(action) {
 function createRoom() {
   const myName = document.getElementById("my-name-input").value.trim() || "Host";
   const pin = Math.floor(1000 + Math.random() * 9000).toString();
-  currentRoomTopic = `flip7game/room_${pin}`;
+  currentRoomTopic = `flip7_v2_room_${pin}`;
   
   document.getElementById("lobby-status").innerText = "Tworzenie pokoju...";
 
-  // Połączenie z darmowym publicznym brokerem HiveMQ WebSocket (SSL)
   mqttClient = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
 
   mqttClient.on('connect', () => {
@@ -342,7 +339,7 @@ function createRoom() {
     mqttClient.subscribe(currentRoomTopic + "/actions");
     mqttClient.subscribe(currentRoomTopic + "/join");
 
-    document.getElementById("lobby-status").innerHTML = `🎮 Jesteś HOST-em! PIN: <strong style="color:var(--warning); font-size:1.15rem; letter-spacing:2px;">${pin}</strong>`;
+    document.getElementById("lobby-status").innerHTML = `🎮 HOST: <strong>${myName}</strong> | PIN: <strong style="color:var(--warning); font-size:1.15rem; letter-spacing:2px;">${pin}</strong>`;
     document.getElementById("lobby-setup").style.display = "none";
     document.getElementById("lobby-join").style.display = "none";
     
@@ -355,12 +352,15 @@ function createRoom() {
     try {
       const data = JSON.parse(message.toString());
       if (topic.endsWith("/join")) {
-        if (!players.some(p => p.id === data.id)) {
+        const existingPlayer = players.find(p => p.id === data.id);
+        if (!existingPlayer) {
           players.push({ id: data.id, name: data.name, cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 });
           showNotification(`Gracz ${data.name} dołączył do gry!`);
-          broadcastGameState();
-          render();
+        } else {
+          existingPlayer.name = data.name; // Aktualizacja nicku
         }
+        broadcastGameState();
+        render();
       } else if (topic.endsWith("/actions")) {
         handleIncomingAction(data.action);
       }
@@ -374,7 +374,7 @@ function joinRoom() {
   const myName = document.getElementById("my-name-input").value.trim() || "Gracz";
   if (!pin) { alert("Wpisz 4-cyfrowy PIN!"); return; }
 
-  currentRoomTopic = `flip7game/room_${pin}`;
+  currentRoomTopic = `flip7_v2_room_${pin}`;
   document.getElementById("lobby-status").innerText = "Błyskawiczne łączenie...";
 
   mqttClient = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
@@ -383,10 +383,10 @@ function joinRoom() {
     isHost = false;
     mqttClient.subscribe(currentRoomTopic + "/state");
     
-    // Wysłanie prośby o dołączenie
-    mqttClient.publish(currentRoomTopic + "/join", JSON.stringify({ id: myClientId, name: myName }));
+    // Poinformuj hosta o dołączeniu
+    mqttClient.publish(currentRoomTopic + "/join", JSON.stringify({ id: myClientId, name: myName }), { qos: 1 });
 
-    document.getElementById("lobby-status").innerHTML = `✅ Połączono z PIN: <strong style="color:var(--success)">${pin}</strong>`;
+    document.getElementById("lobby-status").innerHTML = `✅ Połączono jako: <strong>${myName}</strong> (PIN: ${pin})`;
     document.getElementById("lobby-setup").style.display = "none";
     document.getElementById("lobby-join").style.display = "none";
     document.getElementById("host-controls").style.display = "none";
@@ -468,7 +468,7 @@ function checkBust(cards) {
 function draw3DCard() {
   const effectiveIdx = flip3State.active ? flip3State.targetPlayerIndex : activePlayerIndex;
   const currP = players[effectiveIdx];
-  if (currP.status !== "active") return;
+  if (!currP || currP.status !== "active") return;
 
   if (!isHost && mqttClient) {
     sendActionToHost({ name: "DRAW_3D" });
@@ -538,7 +538,7 @@ function handleCardClick(cardKey) {
 
 function applyCardToPlayer(playerIdx, cardKey) {
   const p = players[playerIdx];
-  if (p.status !== "active") return;
+  if (!p || p.status !== "active") return;
 
   if (cardKey === "Freeze") {
     p.cards.push(cardKey);
@@ -659,7 +659,7 @@ function playerStay(idx) {
     return;
   }
   const p = players[idx];
-  if (p.status === "active") {
+  if (p && p.status === "active") {
     p.status = "stayed";
     p.roundScore = calculateRoundScore(p.cards).total;
     p.totalScore += p.roundScore;
@@ -730,11 +730,16 @@ function render() {
   const effectivePlayerIdx = flip3State.active ? flip3State.targetPlayerIndex : activePlayerIndex;
   const currPlayer = players[effectivePlayerIdx] || players[0];
 
-  const isMyTurn = (!mqttClient) ? true : (currPlayer.id === myClientId);
-  document.getElementById("btn-hit-3d").disabled = !isMyTurn || currPlayer.status !== "active";
-  document.getElementById("btn-stay-3d").disabled = !isMyTurn || currPlayer.status !== "active";
-  document.getElementById("btn-stay-main").disabled = !isMyTurn || currPlayer.status !== "active";
-  document.getElementById("deck-3d-click").style.pointerEvents = (isMyTurn && currPlayer.status === "active") ? "auto" : "none";
+  // Blokowanie przycisków: Gracz może klikać TYLKO wtedy, gdy ID aktywnego gracza zgadza się z ID jego urządzenia
+  const isOnline = !!mqttClient;
+  const isMyTurn = !isOnline ? true : (currPlayer && currPlayer.id === myClientId);
+
+  const canClick = isMyTurn && currPlayer && currPlayer.status === "active";
+
+  document.getElementById("btn-hit-3d").disabled = !canClick;
+  document.getElementById("btn-stay-3d").disabled = !canClick;
+  document.getElementById("btn-stay-main").disabled = !canClick;
+  document.getElementById("deck-3d-click").style.pointerEvents = canClick ? "auto" : "none";
 
   let bustCardsCount = 0;
   const currentNumbers = new Set(currPlayer.cards.filter(c => !isNaN(c)).map(c => parseInt(c, 10)));
@@ -775,7 +780,7 @@ function render() {
     flip3Banner.style.display = "none";
   }
 
-  let advice = isMyTurn ? `<strong>Twoja tura!</strong> ` : `Czekaj na ruch gracza <strong>${currPlayer.name}</strong>... `;
+  let advice = isMyTurn ? `<strong style="color:var(--success)">👉 TWOJA TURA!</strong> ` : `Oczekiwanie na ruch gracza: <strong style="color:var(--warning)">${currPlayer.name}</strong>... `;
   if (isMyTurn) {
     if (bustProb === 0) advice += `0% ryzyka na Bust. Dobieraj!`;
     else if (bustProb > 35) advice += `Ryzyko ${bustProb.toFixed(1)}%. Rozważ Stay (${scoreData.total} pkt).`;
@@ -788,6 +793,7 @@ function render() {
   players.forEach((p, idx) => {
     const isAct = idx === effectivePlayerIdx && p.status === "active";
     const isWin = p.totalScore >= 200;
+    const isMe = p.id === myClientId;
 
     const div = document.createElement("div");
     div.className = `player-slot ${p.status} ${isAct ? 'active' : ''}`;
@@ -795,7 +801,7 @@ function render() {
     div.innerHTML = `
       <div class="player-header">
         <div class="player-name-box">
-          <strong>${p.name} ${isAct ? '▶ (Tura)' : ''}</strong>
+          <strong style="${isMe ? 'color:var(--accent); font-weight:900;' : ''}">${p.name} ${isMe ? '(Ty)' : ''} ${isAct ? '▶ (Tura)' : ''}</strong>
         </div>
         <div>
           <span class="score-badge">Runda: ${p.roundScore}</span>
@@ -812,7 +818,7 @@ function render() {
     playersContainer.appendChild(div);
   });
 
-  // Klawiatury
+  // Klawiatury kart
   const numContainer = document.getElementById("deck-numbers");
   numContainer.innerHTML = "";
   for (let i = 0; i <= 12; i++) {
@@ -820,7 +826,7 @@ function render() {
     const count = deck[card] || 0;
     const btn = document.createElement("button");
     btn.className = "card-btn";
-    btn.disabled = count === 0 || currPlayer.status !== "active" || !isMyTurn;
+    btn.disabled = count === 0 || !canClick;
     btn.onclick = () => handleCardClick(card);
     btn.innerHTML = `<span class="val">${card}</span><span class="count">${count} szt.</span>`;
     numContainer.appendChild(btn);
@@ -832,7 +838,7 @@ function render() {
     const count = deck[card] || 0;
     const btn = document.createElement("button");
     btn.className = `card-btn mod`;
-    btn.disabled = count === 0 || currPlayer.status !== "active" || !isMyTurn;
+    btn.disabled = count === 0 || !canClick;
     btn.onclick = () => handleCardClick(card);
     btn.innerHTML = `<span class="val">${card}</span><span class="count">${count} szt.</span>`;
     modContainer.appendChild(btn);
@@ -844,7 +850,7 @@ function render() {
     const count = deck[card] || 0;
     const btn = document.createElement("button");
     btn.className = `card-btn special`;
-    btn.disabled = count === 0 || currPlayer.status !== "active" || !isMyTurn;
+    btn.disabled = count === 0 || !canClick;
     btn.onclick = () => handleCardClick(card);
     btn.innerHTML = `<span class="val">${card}</span><span class="count">${count} szt.</span>`;
     actContainer.appendChild(btn);
