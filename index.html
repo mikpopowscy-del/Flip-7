@@ -247,6 +247,7 @@
 
   .lobby-inputs { display: flex; gap: 6px; margin-top: 6px; }
   .lobby-input { background: var(--bg-inner); border: 1px solid var(--border); color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem; flex: 1; }
+  .lobby-input::placeholder { color: var(--text-muted); opacity: 0.8; }
 
   /* FLIP 3 BANER */
   .flip3-active-box {
@@ -302,7 +303,7 @@
 
   <!-- GŁÓWNY UKŁAD -->
   <div class="main-grid">
-    <!-- PANEL 1 (GÓRNY NA TELEFONIE): STATS -> ARENA 3D -> WYNIKI I KARTY GRACZY -->
+    <!-- PANEL GŁÓWNY: STATYSTYKI, ARENA 3D ORAZ GRACZE I WYNIKI -->
     <div class="panel">
       <!-- 1. Statystyki -->
       <div class="stats-grid">
@@ -344,7 +345,7 @@
         </div>
       </div>
 
-      <!-- 3. Gracze przy stole, ich punkty i wylosowane karty (WIDOK GŁÓWNY OD RAZU NA EKRANIE) -->
+      <!-- 3. Gracze przy stole, ich punkty i wylosowane karty -->
       <div>
         <div class="pin-display-badge" id="lobby-badge" style="margin-bottom:8px;">
           <span id="lobby-title">🎮 PIN: <strong style="color:var(--warning); font-size:1.1rem; letter-spacing:1px;">Lokalnie</strong></span>
@@ -356,7 +357,7 @@
       </div>
     </div>
 
-    <!-- PANEL 2 (DOLNY NA TELEFONIE PO PRZEWINIĘCIU): KLAWIATURA POZOSTAŁYCH W TALII KART ORAZ OPCJE LOBBY -->
+    <!-- PANEL BOCZNY: KLAWIATURY POZOSTAŁYCH W TALII KART ORAZ OPCJE LOBBY -->
     <div class="panel">
       <!-- 1. Klawiatury kart pozostałych w talii -->
       <div>
@@ -371,7 +372,7 @@
       <!-- 2. Formularz tworzenia/dołączania -->
       <div id="lobby-setup-box" style="display:flex; flex-direction:column; gap:6px; margin-top:8px;">
         <div class="lobby-inputs">
-          <input type="text" id="my-name-input" class="lobby-input" placeholder="Twoje imię" value="Mikołaj">
+          <input type="text" id="my-name-input" class="lobby-input" placeholder="Wpisz swoje imię">
           <button class="action-btn-huge" style="background:var(--accent); color:#000; padding:8px 14px; font-size:0.85rem;" onclick="createRoom()">Hostuj</button>
         </div>
         <div class="lobby-inputs">
@@ -394,8 +395,8 @@
   <div class="winner-box">
     <div style="font-size: 2.5rem; margin-bottom: 4px;">🏆</div>
     <div style="font-size: 0.85rem; font-weight: 800; color: var(--gold); text-transform: uppercase; letter-spacing: 1px;">Zwycięzca Gry!</div>
-    <div id="winner-name-display" style="font-size: 1.8rem; font-weight: 900; color: #fff; margin: 8px 0;">MIKOŁAJ</div>
-    <div id="winner-score-display" style="font-size: 1rem; color: #86efac; font-weight: bold; margin-bottom: 16px;">Wynik: 215 punktów</div>
+    <div id="winner-name-display" style="font-size: 1.8rem; font-weight: 900; color: #fff; margin: 8px 0;">GRACZ</div>
+    <div id="winner-score-display" style="font-size: 1rem; color: #86efac; font-weight: bold; margin-bottom: 16px;">Wynik: 200 punktów</div>
     <button class="action-btn-huge btn-stay-huge" style="width: 100%;" onclick="closeWinnerModal()">Zagraj Ponownie</button>
   </div>
 </div>
@@ -419,8 +420,8 @@ const INITIAL_DECK = {
 
 let deck = {};
 let players = [
-  { id: "local_1", name: "Mikołaj", cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 },
-  { id: "local_2", name: "Mikołaj000", cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 }
+  { id: "local_1", name: "Gracz 1", cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 },
+  { id: "local_2", name: "Gracz 2", cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 }
 ];
 let activePlayerIndex = 0;
 let roundStartingIndex = 0;
@@ -504,7 +505,7 @@ function handleIncomingAction(action) {
 function createRoom() {
   const myName = document.getElementById("my-name-input").value.trim() || "Host";
   const pin = Math.floor(1000 + Math.random() * 9000).toString();
-  currentRoomTopic = `flip7_v13_${pin}`;
+  currentRoomTopic = `flip7_v14_${pin}`;
   
   document.getElementById("lobby-title").innerText = "Łączenie...";
 
@@ -557,7 +558,7 @@ function joinRoom() {
   const myName = document.getElementById("my-name-input").value.trim() || "Gracz";
   if (!pin) { alert("Wpisz 4-cyfrowy PIN!"); return; }
 
-  currentRoomTopic = `flip7_v13_${pin}`;
+  currentRoomTopic = `flip7_v14_${pin}`;
   document.getElementById("lobby-title").innerText = "Dołączanie...";
 
   mqttClient = mqtt.connect(MQTT_BROKER, {
@@ -951,6 +952,7 @@ function resetDeckFull() {
   render();
 }
 
+// FAJERWERKI
 let fireworksInterval = null;
 function launchFireworks() {
   const canvas = document.getElementById("fireworks-canvas");
