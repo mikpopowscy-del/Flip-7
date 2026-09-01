@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Flip 7 Mobile Pro</title>
-<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+<title>Flip 7 Fast Online</title>
+<script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
 <style>
   :root {
     --bg-main: #060d1d;
@@ -29,7 +29,6 @@
 
   .panel { background: var(--bg-card); border-radius: 14px; border: 1px solid var(--border); padding: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
 
-  /* GŁÓWNY BANER TURY */
   .turn-banner {
     width: 100%;
     padding: 12px;
@@ -57,12 +56,10 @@
     100% { transform: scale(1.02); }
   }
 
-  /* LOBBY ONLINE */
   .lobby-box { background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 10px; padding: 10px; }
   .lobby-inputs { display: flex; gap: 6px; margin-top: 6px; }
   .lobby-input { background: var(--bg-inner); border: 1px solid var(--border); color: #fff; padding: 10px; border-radius: 8px; font-size: 0.85rem; flex: 1; }
 
-  /* LISTA GRACZY (MOBILE OPTIMIZED) */
   .players-scroll { display: flex; flex-direction: column; gap: 6px; }
   .player-slot { background: var(--bg-inner); border-radius: 10px; padding: 8px 10px; border-left: 5px solid var(--border); transition: all 0.2s; }
   .player-slot.active { border-left-color: var(--warning); background: #1a2f4c; }
@@ -79,14 +76,12 @@
   .card-chip.action { background: var(--purple); }
   .card-chip.shield { background: #059669; }
 
-  /* STATYSTYKI SMARTFONA */
   .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 8px; }
   .stat-card { background: var(--bg-inner); padding: 8px 2px; border-radius: 8px; text-align: center; }
   .stat-card .num { font-size: 1.1rem; font-weight: 900; color: var(--accent); }
   .stat-card .num.danger { color: var(--danger); }
   .stat-card .lbl { font-size: 0.62rem; color: var(--text-muted); margin-top: 2px; text-transform: uppercase; }
 
-  /* 3D ARENA & PRZYCISKI POD KCIUK */
   .arena-box {
     background: radial-gradient(circle at center, #1e293b 0%, #0b1329 100%);
     border: 1px solid var(--border);
@@ -118,7 +113,6 @@
   .drawn-card-slot .c-val { font-size: 2.2rem; }
   .drawn-card-slot .c-lbl { font-size: 0.65rem; text-transform: uppercase; }
 
-  /* PRZYCISKI GŁÓWNE (DUŻE, POD KCIUK) */
   .mobile-main-controls { display: grid; grid-template-columns: 1.2fr 1fr; gap: 8px; width: 100%; }
   button.action-btn-huge {
     cursor: pointer; border: none; border-radius: 10px; padding: 14px 10px;
@@ -130,7 +124,6 @@
   .btn-hit-huge { background: var(--accent); color: #000; box-shadow: 0 4px 12px rgba(56, 189, 248, 0.4); }
   .btn-stay-huge { background: var(--success); color: #000; box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4); }
 
-  /* KLAWIATURY KART */
   .deck-section-title { font-size: 0.72rem; color: var(--text-muted); margin: 6px 0 3px 0; text-transform: uppercase; font-weight: bold; }
   .deck-keypad { display: grid; grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: 4px; margin-bottom: 6px; }
   .card-btn { background: var(--bg-inner); border: 1px solid var(--border); color: var(--text-main); border-radius: 6px; padding: 8px 1px; text-align: center; }
@@ -140,7 +133,6 @@
   .card-btn.special { border-color: var(--purple); }
   .card-btn.mod { border-color: var(--warning); }
 
-  /* MODAL ZWYCIĘZCY Z FAJERWERKAMI */
   .winner-modal {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center;
@@ -158,7 +150,6 @@
   }
   #fireworks-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9998; }
 
-  /* MODAL WYBORU CELU */
   .target-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 5000; padding: 16px; }
   .target-content { background: var(--bg-card); border: 1px solid var(--accent); border-radius: 12px; padding: 16px; max-width: 340px; width: 100%; }
   .target-btn { width: 100%; padding: 12px; margin-bottom: 6px; background: var(--bg-inner); border: 1px solid var(--border); color: #fff; border-radius: 8px; text-align: left; font-weight: bold; display: flex; justify-content: space-between; }
@@ -167,12 +158,9 @@
 <body>
 
 <div class="container">
-  <!-- WIDOCZNY BANER TURY -->
   <div class="turn-banner other-turn" id="global-turn-banner">OCZEKIWANIE NA START</div>
 
-  <!-- PANEL GŁÓWNY GRY -->
   <div class="panel">
-    <!-- Statystyki -->
     <div class="stats-grid">
       <div class="stat-card">
         <div class="num" id="stat-cards-left">94</div>
@@ -192,7 +180,6 @@
       </div>
     </div>
 
-    <!-- ARENA 3D I PRZYCISKI POD KCIUK -->
     <div class="arena-box">
       <div class="deck-row">
         <div class="card-3d-deck" id="deck-3d-click" onclick="draw3DCard()">
@@ -212,7 +199,6 @@
       </div>
     </div>
 
-    <!-- Klawiatura kart (Manual) -->
     <div style="margin-top:10px;">
       <div class="deck-section-title">Karty Numeryczne (0-12)</div>
       <div class="deck-keypad" id="deck-numbers"></div>
@@ -222,9 +208,7 @@
     </div>
   </div>
 
-  <!-- PANEL BOCZNY: Gracze & Lobby -->
   <div class="panel">
-    <!-- Lobby Online -->
     <div class="lobby-box" id="lobby-container">
       <div style="font-size:0.8rem; font-weight:bold; color:var(--accent);" id="lobby-title">🌐 Tryb Online</div>
       <div class="lobby-inputs" id="lobby-setup">
@@ -247,7 +231,6 @@
   </div>
 </div>
 
-<!-- POP-UP ZWYCIĘZCY Z FAJERWERKAMI -->
 <div class="winner-modal" id="winner-modal">
   <canvas id="fireworks-canvas"></canvas>
   <div class="winner-box">
@@ -259,7 +242,6 @@
   </div>
 </div>
 
-<!-- MODAL AKCJI -->
 <div class="target-modal" id="target-modal">
   <div class="target-content">
     <h3 id="modal-card-title" style="color:var(--accent); margin-bottom:10px; font-size:1rem;">Przydziel kartę</h3>
@@ -286,11 +268,13 @@ let last3DCard = null;
 let flip3State = { active: false, targetPlayerIndex: null, remainingDraws: 0, returnPlayerIndex: null };
 let pendingSpecialCard = null;
 
-// MULTIPLAYER
+// GWARANTOWANY BROKER MQTT (EMQX WSS)
+const MQTT_BROKER = "wss://broker.emqx.io:8084/mqtt";
 let mqttClient = null;
 let currentRoomTopic = null;
 let isHost = false;
-let myClientId = "p_" + Math.random().toString(16).substring(2, 10);
+let myClientId = "p_" + Math.random().toString(36).substring(2, 10);
+let joinInterval = null;
 
 function initDeck() {
   deck = JSON.parse(JSON.stringify(INITIAL_DECK));
@@ -303,13 +287,13 @@ function getCardsRemainingCount() {
 function broadcastGameState() {
   if (!isHost || !mqttClient || !currentRoomTopic) return;
   const payload = { type: "SYNC", deck, players, activePlayerIndex, last3DCard, flip3State };
-  mqttClient.publish(currentRoomTopic + "/state", JSON.stringify(payload), { qos: 1 });
+  mqttClient.publish(currentRoomTopic + "/state", JSON.stringify(payload));
 }
 
 function sendActionToHost(actionData) {
   if (isHost) handleIncomingAction(actionData);
   else if (mqttClient && currentRoomTopic) {
-    mqttClient.publish(currentRoomTopic + "/actions", JSON.stringify({ senderId: myClientId, action: actionData }), { qos: 1 });
+    mqttClient.publish(currentRoomTopic + "/actions", JSON.stringify({ senderId: myClientId, action: actionData }));
   }
 }
 
@@ -323,16 +307,24 @@ function handleIncomingAction(action) {
 function createRoom() {
   const myName = document.getElementById("my-name-input").value.trim() || "Host";
   const pin = Math.floor(1000 + Math.random() * 9000).toString();
-  currentRoomTopic = `flip7_v3_${pin}`;
+  currentRoomTopic = `flip7_stable_${pin}`;
   
-  mqttClient = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
+  document.getElementById("lobby-title").innerText = "Łączenie z serwerem...";
+
+  mqttClient = mqtt.connect(MQTT_BROKER, {
+    clientId: myClientId,
+    clean: true,
+    connectTimeout: 5000
+  });
+
   mqttClient.on('connect', () => {
     isHost = true;
     players = [{ id: myClientId, name: myName, cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 }];
+    
     mqttClient.subscribe(currentRoomTopic + "/actions");
     mqttClient.subscribe(currentRoomTopic + "/join");
 
-    document.getElementById("lobby-title").innerHTML = `🎮 PIN Pokoju: <strong style="color:var(--warning); font-size:1.1rem; letter-spacing:2px;">${pin}</strong>`;
+    document.getElementById("lobby-title").innerHTML = `🎮 PIN: <strong style="color:var(--warning); font-size:1.1rem; letter-spacing:2px;">${pin}</strong>`;
     document.getElementById("lobby-setup").style.display = "none";
     document.getElementById("lobby-join").style.display = "none";
     
@@ -345,9 +337,12 @@ function createRoom() {
     try {
       const data = JSON.parse(message.toString());
       if (topic.endsWith("/join")) {
-        const p = players.find(x => x.id === data.id);
-        if (!p) players.push({ id: data.id, name: data.name, cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 });
-        else p.name = data.name;
+        const existing = players.find(x => x.id === data.id);
+        if (!existing) {
+          players.push({ id: data.id, name: data.name, cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 });
+        } else {
+          existing.name = data.name;
+        }
         broadcastGameState();
         render();
       } else if (topic.endsWith("/actions")) {
@@ -360,15 +355,25 @@ function createRoom() {
 function joinRoom() {
   const pin = document.getElementById("room-pin-input").value.trim();
   const myName = document.getElementById("my-name-input").value.trim() || "Gracz";
-  if (!pin) return;
+  if (!pin) { alert("Wpisz 4-cyfrowy PIN!"); return; }
 
-  currentRoomTopic = `flip7_v3_${pin}`;
-  mqttClient = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
+  currentRoomTopic = `flip7_stable_${pin}`;
+  document.getElementById("lobby-title").innerText = "Dołączanie do gry...";
+
+  mqttClient = mqtt.connect(MQTT_BROKER, {
+    clientId: myClientId,
+    clean: true,
+    connectTimeout: 5000
+  });
 
   mqttClient.on('connect', () => {
     isHost = false;
     mqttClient.subscribe(currentRoomTopic + "/state");
-    mqttClient.publish(currentRoomTopic + "/join", JSON.stringify({ id: myClientId, name: myName }), { qos: 1 });
+    
+    // Wysyłaj pakiet join dopóki nie otrzymasz stanu gry
+    joinInterval = setInterval(() => {
+      mqttClient.publish(currentRoomTopic + "/join", JSON.stringify({ id: myClientId, name: myName }));
+    }, 400);
 
     document.getElementById("lobby-title").innerHTML = `✅ Połączono: <strong>${myName}</strong> (PIN: ${pin})`;
     document.getElementById("lobby-setup").style.display = "none";
@@ -379,6 +384,10 @@ function joinRoom() {
   mqttClient.on('message', (topic, message) => {
     try {
       if (topic.endsWith("/state")) {
+        if (joinInterval) {
+          clearInterval(joinInterval);
+          joinInterval = null;
+        }
         const data = JSON.parse(message.toString());
         deck = data.deck;
         players = data.players;
@@ -667,7 +676,6 @@ function resetDeckFull() {
   render();
 }
 
-// SILNIK FAJERWERKÓW (CANVAS)
 let fireworksInterval = null;
 function launchFireworks() {
   const canvas = document.getElementById("fireworks-canvas");
@@ -748,7 +756,6 @@ function render() {
   const isMyTurn = !isOnline ? true : (currPlayer && currPlayer.id === myClientId);
   const canClick = isMyTurn && currPlayer && currPlayer.status === "active";
 
-  // WIDOCZNY GÓRNY BANER TURY
   const turnBanner = document.getElementById("global-turn-banner");
   if (canClick) {
     turnBanner.className = "turn-banner my-turn";
@@ -765,7 +772,10 @@ function render() {
   let bustCardsCount = 0;
   const currentNumbers = new Set(currPlayer.cards.filter(c => !isNaN(c)).map(c => parseInt(c, 10)));
   for (const [card, count] of Object.entries(deck)) {
-    if (!isNaN(card) && currentNumbers.has(parseInt(card, 10))) bustCardsCount += count;
+    if (!isNaN(card)) {
+      const val = parseInt(card, 10);
+      if (currentNumbers.has(val)) bustCardsCount += count;
+    }
   }
 
   const bustProb = totalCardsLeft > 0 ? (bustCardsCount / totalCardsLeft) * 100 : 0;
@@ -788,7 +798,6 @@ function render() {
     `;
   }
 
-  // Lista graczy
   const playersContainer = document.getElementById("players-list");
   playersContainer.innerHTML = "";
   players.forEach((p, idx) => {
@@ -815,7 +824,6 @@ function render() {
     playersContainer.appendChild(div);
   });
 
-  // Klawiatury
   const numContainer = document.getElementById("deck-numbers");
   numContainer.innerHTML = "";
   for (let i = 0; i <= 12; i++) {
