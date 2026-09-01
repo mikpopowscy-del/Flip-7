@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Flip 7 Mobile Pro</title>
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+<style>
+  :root {
+    --bg-main: #060d1d;
+    --bg-card: #131d31;
+    --bg-inner: #1e293b;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --accent: #38bdf8;
+    --danger: #ef4444;
+    --success: #22c55e;
+    --warning: #f59e0b;
+    --purple: #a855f7;
+    --border: rgba(255, 255, 255, 0.1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+  body { background: var(--bg-main); color: var(--text-main); padding: 8px; padding-bottom: 24px; }
+  
+  .container { max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+  @media(min-width: 900px) {
+    .container { max-width: 1100px; display: grid; grid-template-columns: 360px 1fr; }
+  }
+
+  .panel { background: var(--bg-card); border-radius: 14px; border: 1px solid var(--border); padding: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+
+  /* GŁÓWNY BANER TURY */
+  .turn-banner {
+    width: 100%;
+    padding: 12px;
+    border-radius: 12px;
+    text-align: center;
+    font-size: 1.05rem;
+    font-weight: 900;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    transition: all 0.3s ease;
+  }
+  .turn-banner.my-turn {
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    color: #fff;
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
+    animation: pulseTurn 1.2s infinite alternate;
+  }
+  .turn-banner.other-turn {
+    background: #1e293b;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+  @keyframes pulseTurn {
+    0% { transform: scale(0.99); }
+    100% { transform: scale(1.02); }
+  }
+
+  /* LOBBY ONLINE */
+  .lobby-box { background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 10px; padding: 10px; }
+  .lobby-inputs { display: flex; gap: 6px; margin-top: 6px; }
+  .lobby-input { background: var(--bg-inner); border: 1px solid var(--border); color: #fff; padding: 10px; border-radius: 8px; font-size: 0.85rem; flex: 1; }
+
+  /* LISTA GRACZY (MOBILE OPTIMIZED) */
+  .players-scroll { display: flex; flex-direction: column; gap: 6px; }
+  .player-slot { background: var(--bg-inner); border-radius: 10px; padding: 8px 10px; border-left: 5px solid var(--border); transition: all 0.2s; }
+  .player-slot.active { border-left-color: var(--warning); background: #1a2f4c; }
+  .player-slot.busted { border-left-color: var(--danger); opacity: 0.5; }
+  .player-slot.frozen, .player-slot.stayed { border-left-color: var(--success); }
+  .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  
+  .score-badge { font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; font-weight: 800; background: rgba(0,0,0,0.4); }
+  .score-badge.total { background: #0284c7; color: #fff; }
+
+  .cards-list { display: flex; flex-wrap: wrap; gap: 3px; min-height: 20px; }
+  .card-chip { font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; background: #0284c7; font-weight: 800; }
+  .card-chip.mod { background: #d97706; }
+  .card-chip.action { background: var(--purple); }
+  .card-chip.shield { background: #059669; }
+
+  /* STATYSTYKI SMARTFONA */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 8px; }
+  .stat-card { background: var(--bg-inner); padding: 8px 2px; border-radius: 8px; text-align: center; }
+  .stat-card .num { font-size: 1.1rem; font-weight: 900; color: var(--accent); }
+  .stat-card .num.danger { color: var(--danger); }
+  .stat-card .lbl { font-size: 0.62rem; color: var(--text-muted); margin-top: 2px; text-transform: uppercase; }
+
+  /* 3D ARENA & PRZYCISKI POD KCIUK */
+  .arena-box {
+    background: radial-gradient(circle at center, #1e293b 0%, #0b1329 100%);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .deck-row { display: flex; gap: 14px; align-items: center; justify-content: center; }
+
+  .card-3d-deck {
+    width: 95px; height: 135px;
+    background: repeating-linear-gradient(45deg, #1e3a8a, #1e3a8a 10px, #172554 10px, #172554 20px);
+    border: 3px solid #60a5fa; border-radius: 10px;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+    cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; user-select: none;
+  }
+  .card-3d-deck:active { transform: scale(0.95); }
+
+  .drawn-card-slot {
+    width: 95px; height: 135px; background: #ffffff; border-radius: 10px; border: 3px solid #cbd5e1;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; color: #0f172a; font-weight: 900;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+  }
+  .drawn-card-slot.mod { background: #fef3c7; border-color: #f59e0b; color: #b45309; }
+  .drawn-card-slot.action { background: #f3e8ff; border-color: #a855f7; color: #6b21a8; }
+  .drawn-card-slot .c-val { font-size: 2.2rem; }
+  .drawn-card-slot .c-lbl { font-size: 0.65rem; text-transform: uppercase; }
+
+  /* PRZYCISKI GŁÓWNE (DUŻE, POD KCIUK) */
+  .mobile-main-controls { display: grid; grid-template-columns: 1.2fr 1fr; gap: 8px; width: 100%; }
+  button.action-btn-huge {
+    cursor: pointer; border: none; border-radius: 10px; padding: 14px 10px;
+    font-weight: 900; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.5px;
+    touch-action: manipulation; transition: transform 0.1s;
+  }
+  button.action-btn-huge:active:not(:disabled) { transform: scale(0.96); }
+  button:disabled { opacity: 0.25; cursor: not-allowed; }
+  .btn-hit-huge { background: var(--accent); color: #000; box-shadow: 0 4px 12px rgba(56, 189, 248, 0.4); }
+  .btn-stay-huge { background: var(--success); color: #000; box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4); }
+
+  /* KLAWIATURY KART */
+  .deck-section-title { font-size: 0.72rem; color: var(--text-muted); margin: 6px 0 3px 0; text-transform: uppercase; font-weight: bold; }
+  .deck-keypad { display: grid; grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: 4px; margin-bottom: 6px; }
+  .card-btn { background: var(--bg-inner); border: 1px solid var(--border); color: var(--text-main); border-radius: 6px; padding: 8px 1px; text-align: center; }
+  .card-btn:disabled { opacity: 0.2; }
+  .card-btn .val { font-size: 0.95rem; font-weight: bold; }
+  .card-btn .count { font-size: 0.6rem; color: var(--text-muted); display: block; }
+  .card-btn.special { border-color: var(--purple); }
+  .card-btn.mod { border-color: var(--warning); }
+
+  /* MODAL ZWYCIĘZCY Z FAJERWERKAMI */
+  .winner-modal {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center;
+    z-index: 9999; padding: 16px;
+  }
+  .winner-box {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border: 2px solid var(--gold); border-radius: 20px; padding: 24px 16px;
+    text-align: center; max-width: 360px; width: 100%; box-shadow: 0 0 30px var(--gold);
+    position: relative; z-index: 10000; animation: popWinner 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  @keyframes popWinner {
+    0% { transform: scale(0.4); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  #fireworks-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9998; }
+
+  /* MODAL WYBORU CELU */
+  .target-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 5000; padding: 16px; }
+  .target-content { background: var(--bg-card); border: 1px solid var(--accent); border-radius: 12px; padding: 16px; max-width: 340px; width: 100%; }
+  .target-btn { width: 100%; padding: 12px; margin-bottom: 6px; background: var(--bg-inner); border: 1px solid var(--border); color: #fff; border-radius: 8px; text-align: left; font-weight: bold; display: flex; justify-content: space-between; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- WIDOCZNY BANER TURY -->
+  <div class="turn-banner other-turn" id="global-turn-banner">OCZEKIWANIE NA START</div>
+
+  <!-- PANEL GŁÓWNY GRY -->
+  <div class="panel">
+    <!-- Statystyki -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="num" id="stat-cards-left">94</div>
+        <div class="lbl">Talia</div>
+      </div>
+      <div class="stat-card">
+        <div class="num danger" id="stat-bust-prob">0.0%</div>
+        <div class="lbl">Bust</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" id="stat-unique-count">0/7</div>
+        <div class="lbl">Unikalne</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" id="stat-active-score">0</div>
+        <div class="lbl">Runda</div>
+      </div>
+    </div>
+
+    <!-- ARENA 3D I PRZYCISKI POD KCIUK -->
+    <div class="arena-box">
+      <div class="deck-row">
+        <div class="card-3d-deck" id="deck-3d-click" onclick="draw3DCard()">
+          <div style="font-size:1.1rem; font-weight:900; color:#fff;">FLIP 7</div>
+          <div style="font-size:0.7rem; color:#93c5fd;" id="deck-3d-count">94 kart</div>
+        </div>
+        <div id="slot-3d-card">
+          <div class="drawn-card-slot" style="border-style:dashed; background:rgba(255,255,255,0.05); color:var(--text-muted);">
+            <span style="font-size:0.65rem;">DOCIĄGNIJ</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="mobile-main-controls">
+        <button class="action-btn-huge btn-hit-huge" id="btn-hit-huge" onclick="draw3DCard()">Dociągnij</button>
+        <button class="action-btn-huge btn-stay-huge" id="btn-stay-huge" onclick="playerStay(activePlayerIndex)">Zatrzymaj</button>
+      </div>
+    </div>
+
+    <!-- Klawiatura kart (Manual) -->
+    <div style="margin-top:10px;">
+      <div class="deck-section-title">Karty Numeryczne (0-12)</div>
+      <div class="deck-keypad" id="deck-numbers"></div>
+      
+      <div class="deck-section-title">Modyfikatory & Akcje</div>
+      <div class="deck-keypad" id="deck-specials"></div>
+    </div>
+  </div>
+
+  <!-- PANEL BOCZNY: Gracze & Lobby -->
+  <div class="panel">
+    <!-- Lobby Online -->
+    <div class="lobby-box" id="lobby-container">
+      <div style="font-size:0.8rem; font-weight:bold; color:var(--accent);" id="lobby-title">🌐 Tryb Online</div>
+      <div class="lobby-inputs" id="lobby-setup">
+        <input type="text" id="my-name-input" class="lobby-input" placeholder="Imię" value="Mikołaj">
+        <button class="action-btn-huge" style="background:var(--accent); color:#000; padding:8px 12px; font-size:0.8rem;" onclick="createRoom()">Host</button>
+      </div>
+      <div class="lobby-inputs" id="lobby-join" style="margin-top:4px;">
+        <input type="text" id="room-pin-input" class="lobby-input" placeholder="PIN Pokoju">
+        <button class="action-btn-huge" style="background:#334155; color:#fff; padding:8px 12px; font-size:0.8rem;" onclick="joinRoom()">Dołącz</button>
+      </div>
+    </div>
+
+    <h3 style="margin: 10px 0 6px 0; font-size:0.9rem;">Gracze przy stole</h3>
+    <div class="players-scroll" id="players-list"></div>
+
+    <div style="display:flex; gap:6px; margin-top:10px;" id="host-controls">
+      <button class="action-btn-huge" style="background:#6366f1; color:#fff; flex:1; font-size:0.75rem; padding:10px;" onclick="manualShuffle()">🔀 Przetasuj</button>
+      <button class="action-btn-huge" style="background:var(--danger); color:#fff; flex:1; font-size:0.75rem; padding:10px;" onclick="resetDeckFull()">Reset Gry</button>
+    </div>
+  </div>
+</div>
+
+<!-- POP-UP ZWYCIĘZCY Z FAJERWERKAMI -->
+<div class="winner-modal" id="winner-modal">
+  <canvas id="fireworks-canvas"></canvas>
+  <div class="winner-box">
+    <div style="font-size: 2.5rem; margin-bottom: 4px;">🏆</div>
+    <div style="font-size: 0.85rem; font-weight: 800; color: var(--gold); text-transform: uppercase; letter-spacing: 1px;">Zwycięzca Gry!</div>
+    <div id="winner-name-display" style="font-size: 1.8rem; font-weight: 900; color: #fff; margin: 8px 0;">MIKOŁAJ</div>
+    <div id="winner-score-display" style="font-size: 1rem; color: #86efac; font-weight: bold; margin-bottom: 16px;">Wynik: 215 punktów</div>
+    <button class="action-btn-huge btn-stay-huge" style="width: 100%;" onclick="closeWinnerModal()">Zagraj Ponownie</button>
+  </div>
+</div>
+
+<!-- MODAL AKCJI -->
+<div class="target-modal" id="target-modal">
+  <div class="target-content">
+    <h3 id="modal-card-title" style="color:var(--accent); margin-bottom:10px; font-size:1rem;">Przydziel kartę</h3>
+    <div id="modal-target-list"></div>
+    <button class="action-btn-huge" style="width:100%; background:#334155; color:#fff; font-size:0.8rem; padding:10px; margin-top:6px;" onclick="closeModal()">Anuluj</button>
+  </div>
+</div>
+
+<script>
+const INITIAL_DECK = {
+  "0": 1, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, 
+  "7": 7, "8": 8, "9": 9, "10": 10, "11": 11, "12": 12,
+  "+2": 1, "+4": 1, "+6": 1, "+8": 1, "+10": 1, "x2": 1,
+  "Freeze": 3, "Flip3": 3, "2ndChance": 3
+};
+
+let deck = {};
+let players = [
+  { id: "local_1", name: "Gracz 1", cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 }
+];
+let activePlayerIndex = 0;
+let last3DCard = null;
+
+let flip3State = { active: false, targetPlayerIndex: null, remainingDraws: 0, returnPlayerIndex: null };
+let pendingSpecialCard = null;
+
+// MULTIPLAYER
+let mqttClient = null;
+let currentRoomTopic = null;
+let isHost = false;
+let myClientId = "p_" + Math.random().toString(16).substring(2, 10);
+
+function initDeck() {
+  deck = JSON.parse(JSON.stringify(INITIAL_DECK));
+}
+
+function getCardsRemainingCount() {
+  return Object.values(deck).reduce((a, b) => a + b, 0);
+}
+
+function broadcastGameState() {
+  if (!isHost || !mqttClient || !currentRoomTopic) return;
+  const payload = { type: "SYNC", deck, players, activePlayerIndex, last3DCard, flip3State };
+  mqttClient.publish(currentRoomTopic + "/state", JSON.stringify(payload), { qos: 1 });
+}
+
+function sendActionToHost(actionData) {
+  if (isHost) handleIncomingAction(actionData);
+  else if (mqttClient && currentRoomTopic) {
+    mqttClient.publish(currentRoomTopic + "/actions", JSON.stringify({ senderId: myClientId, action: actionData }), { qos: 1 });
+  }
+}
+
+function handleIncomingAction(action) {
+  if (action.name === "DRAW_3D") draw3DCard();
+  else if (action.name === "CLICK_CARD") handleCardClick(action.card);
+  else if (action.name === "STAY") playerStay(action.playerIdx);
+  else if (action.name === "ASSIGN_SPECIAL") confirmSpecialAssignment(action.targetIdx, action.cardKey);
+}
+
+function createRoom() {
+  const myName = document.getElementById("my-name-input").value.trim() || "Host";
+  const pin = Math.floor(1000 + Math.random() * 9000).toString();
+  currentRoomTopic = `flip7_v3_${pin}`;
+  
+  mqttClient = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
+  mqttClient.on('connect', () => {
+    isHost = true;
+    players = [{ id: myClientId, name: myName, cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 }];
+    mqttClient.subscribe(currentRoomTopic + "/actions");
+    mqttClient.subscribe(currentRoomTopic + "/join");
+
+    document.getElementById("lobby-title").innerHTML = `🎮 PIN Pokoju: <strong style="color:var(--warning); font-size:1.1rem; letter-spacing:2px;">${pin}</strong>`;
+    document.getElementById("lobby-setup").style.display = "none";
+    document.getElementById("lobby-join").style.display = "none";
+    
+    initDeck();
+    broadcastGameState();
+    render();
+  });
+
+  mqttClient.on('message', (topic, message) => {
+    try {
+      const data = JSON.parse(message.toString());
+      if (topic.endsWith("/join")) {
+        const p = players.find(x => x.id === data.id);
+        if (!p) players.push({ id: data.id, name: data.name, cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 });
+        else p.name = data.name;
+        broadcastGameState();
+        render();
+      } else if (topic.endsWith("/actions")) {
+        handleIncomingAction(data.action);
+      }
+    } catch(e){}
+  });
+}
+
+function joinRoom() {
+  const pin = document.getElementById("room-pin-input").value.trim();
+  const myName = document.getElementById("my-name-input").value.trim() || "Gracz";
+  if (!pin) return;
+
+  currentRoomTopic = `flip7_v3_${pin}`;
+  mqttClient = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
+
+  mqttClient.on('connect', () => {
+    isHost = false;
+    mqttClient.subscribe(currentRoomTopic + "/state");
+    mqttClient.publish(currentRoomTopic + "/join", JSON.stringify({ id: myClientId, name: myName }), { qos: 1 });
+
+    document.getElementById("lobby-title").innerHTML = `✅ Połączono: <strong>${myName}</strong> (PIN: ${pin})`;
+    document.getElementById("lobby-setup").style.display = "none";
+    document.getElementById("lobby-join").style.display = "none";
+    document.getElementById("host-controls").style.display = "none";
+  });
+
+  mqttClient.on('message', (topic, message) => {
+    try {
+      if (topic.endsWith("/state")) {
+        const data = JSON.parse(message.toString());
+        deck = data.deck;
+        players = data.players;
+        activePlayerIndex = data.activePlayerIndex;
+        last3DCard = data.last3DCard;
+        flip3State = data.flip3State;
+        render();
+      }
+    } catch(e){}
+  });
+}
+
+function checkDeckExhaustion() {
+  if (getCardsRemainingCount() <= 0) initDeck();
+}
+
+function manualShuffle() {
+  if (!isHost && mqttClient) return;
+  initDeck();
+  broadcastGameState();
+  render();
+}
+
+function calculateRoundScore(cards) {
+  let sum = 0, flat = 0, mult = 1;
+  const uniqueNums = new Set();
+
+  cards.forEach(c => {
+    if (!isNaN(c)) {
+      const val = parseInt(c, 10);
+      sum += val;
+      uniqueNums.add(val);
+    } else if (c.startsWith("+")) flat += parseInt(c.replace("+", ""), 10);
+    else if (c === "x2") mult *= 2;
+  });
+
+  let total = (sum + flat) * mult;
+  if (uniqueNums.size >= 7) total += 15;
+  return { total, uniqueCount: uniqueNums.size };
+}
+
+function checkBust(cards) {
+  const counts = {};
+  for (let c of cards) {
+    if (!isNaN(c)) {
+      counts[c] = (counts[c] || 0) + 1;
+      if (counts[c] > 1) return { isBusted: true, dupeCard: c };
+    }
+  }
+  return { isBusted: false };
+}
+
+function draw3DCard() {
+  const effectiveIdx = flip3State.active ? flip3State.targetPlayerIndex : activePlayerIndex;
+  const currP = players[effectiveIdx];
+  if (!currP || currP.status !== "active") return;
+
+  if (!isHost && mqttClient) {
+    sendActionToHost({ name: "DRAW_3D" });
+    return;
+  }
+
+  const pool = [];
+  for (const [card, count] of Object.entries(deck)) {
+    for (let i = 0; i < count; i++) pool.push(card);
+  }
+  if (pool.length === 0) return;
+
+  const drawn = pool[Math.floor(Math.random() * pool.length)];
+  last3DCard = drawn;
+  handleCardClick(drawn);
+}
+
+function handleCardClick(cardKey) {
+  if (deck[cardKey] <= 0) return;
+  last3DCard = cardKey;
+
+  if (!isHost && mqttClient) {
+    sendActionToHost({ name: "CLICK_CARD", card: cardKey });
+    return;
+  }
+
+  const isTargetAction = (cardKey === "Freeze" || cardKey === "Flip3");
+  
+  if (flip3State.active) {
+    if (isTargetAction) {
+      deck[cardKey]--;
+      checkDeckExhaustion();
+      pendingSpecialCard = cardKey;
+      openSpecialModal(cardKey);
+      return;
+    } else {
+      applyCardToPlayer(flip3State.targetPlayerIndex, cardKey);
+      deck[cardKey]--;
+      checkDeckExhaustion();
+    }
+    
+    flip3State.remainingDraws--;
+    if (flip3State.remainingDraws <= 0 || players[flip3State.targetPlayerIndex].status !== "active") {
+      flip3State.active = false;
+      activePlayerIndex = flip3State.returnPlayerIndex;
+      advanceTurnToNextActive();
+    }
+    checkAutoRoundProgression();
+    broadcastGameState();
+    render();
+    return;
+  }
+
+  if (isTargetAction) {
+    pendingSpecialCard = cardKey;
+    openSpecialModal(cardKey);
+  } else {
+    deck[cardKey]--;
+    checkDeckExhaustion();
+    applyCardToPlayer(activePlayerIndex, cardKey);
+    advanceTurnToNextActive();
+    checkAutoRoundProgression();
+    broadcastGameState();
+    render();
+  }
+}
+
+function applyCardToPlayer(playerIdx, cardKey) {
+  const p = players[playerIdx];
+  if (!p || p.status !== "active") return;
+
+  if (cardKey === "Freeze") {
+    p.cards.push(cardKey);
+    p.status = "frozen";
+    p.roundScore = calculateRoundScore(p.cards).total;
+    p.totalScore += p.roundScore;
+    checkWinner();
+    return;
+  }
+
+  if (cardKey === "2ndChance") {
+    p.secondChances++;
+    p.cards.push(cardKey);
+    p.roundScore = calculateRoundScore(p.cards).total;
+    return;
+  }
+
+  p.cards.push(cardKey);
+
+  const bustCheck = checkBust(p.cards);
+  if (bustCheck.isBusted) {
+    if (p.secondChances > 0) {
+      p.secondChances--;
+      const idx2nd = p.cards.indexOf("2ndChance");
+      if (idx2nd > -1) p.cards.splice(idx2nd, 1);
+      const lastDupe = p.cards.lastIndexOf(bustCheck.dupeCard);
+      if (lastDupe > -1) p.cards.splice(lastDupe, 1);
+    } else {
+      p.status = "busted";
+      p.roundScore = 0;
+      return;
+    }
+  }
+
+  const scoreData = calculateRoundScore(p.cards);
+  p.roundScore = scoreData.total;
+
+  if (scoreData.uniqueCount >= 7) {
+    p.status = "stayed";
+    p.totalScore += p.roundScore;
+    checkWinner();
+  }
+}
+
+function openSpecialModal(cardKey) {
+  const modal = document.getElementById("target-modal");
+  document.getElementById("modal-card-title").innerText = `Komu przydzielić: ${cardKey}?`;
+  
+  const targetList = document.getElementById("modal-target-list");
+  targetList.innerHTML = "";
+
+  players.forEach((p, idx) => {
+    const isAvailable = p.status === "active";
+    const btn = document.createElement("button");
+    btn.className = "target-btn";
+    btn.disabled = !isAvailable;
+    btn.innerHTML = `<span>${p.name}</span> <span style="font-size: 0.72rem; color: ${isAvailable ? 'var(--accent)' : 'var(--text-muted)'}">${isAvailable ? p.roundScore + ' pkt' : p.status}</span>`;
+    
+    if (isAvailable) {
+      btn.onclick = () => {
+        closeModal();
+        if (!isHost && mqttClient) sendActionToHost({ name: "ASSIGN_SPECIAL", targetIdx: idx, cardKey: cardKey });
+        else confirmSpecialAssignment(idx, cardKey);
+      };
+    }
+    targetList.appendChild(btn);
+  });
+
+  modal.style.display = "flex";
+}
+
+function closeModal() {
+  document.getElementById("target-modal").style.display = "none";
+  pendingSpecialCard = null;
+}
+
+function confirmSpecialAssignment(targetIdx, cardKeyOverride) {
+  const cardKey = cardKeyOverride || pendingSpecialCard;
+  deck[cardKey]--;
+  checkDeckExhaustion();
+
+  if (cardKey === "Flip3") {
+    flip3State = { active: true, targetPlayerIndex: targetIdx, remainingDraws: 3, returnPlayerIndex: activePlayerIndex };
+    broadcastGameState();
+    render();
+    return;
+  }
+
+  applyCardToPlayer(targetIdx, cardKey);
+  advanceTurnToNextActive();
+  checkAutoRoundProgression();
+  broadcastGameState();
+  render();
+}
+
+function advanceTurnToNextActive() {
+  const activeCount = players.filter(p => p.status === "active").length;
+  if (activeCount === 0) return;
+
+  let loopLimit = players.length;
+  do {
+    activePlayerIndex = (activePlayerIndex + 1) % players.length;
+    loopLimit--;
+  } while (players[activePlayerIndex].status !== "active" && loopLimit >= 0);
+}
+
+function playerStay(idx) {
+  if (!isHost && mqttClient) {
+    sendActionToHost({ name: "STAY", playerIdx: idx });
+    return;
+  }
+  const p = players[idx];
+  if (p && p.status === "active") {
+    p.status = "stayed";
+    p.roundScore = calculateRoundScore(p.cards).total;
+    p.totalScore += p.roundScore;
+    checkWinner();
+    advanceTurnToNextActive();
+    checkAutoRoundProgression();
+  }
+  broadcastGameState();
+  render();
+}
+
+function checkAutoRoundProgression() {
+  const anyActive = players.some(p => p.status === "active");
+  if (!anyActive) {
+    setTimeout(autoStartNextRound, 1000);
+  }
+}
+
+function autoStartNextRound() {
+  players.forEach(p => {
+    p.cards = [];
+    p.status = "active";
+    p.roundScore = 0;
+    p.secondChances = 0;
+  });
+  flip3State.active = false;
+  activePlayerIndex = 0;
+  if (getCardsRemainingCount() < 15) initDeck();
+  broadcastGameState();
+  render();
+}
+
+function resetDeckFull() {
+  if (!isHost && mqttClient) return;
+  initDeck();
+  players.forEach(p => {
+    p.cards = [];
+    p.status = "active";
+    p.roundScore = 0;
+    p.totalScore = 0;
+    p.secondChances = 0;
+  });
+  flip3State.active = false;
+  activePlayerIndex = 0;
+  last3DCard = null;
+  broadcastGameState();
+  render();
+}
+
+// SILNIK FAJERWERKÓW (CANVAS)
+let fireworksInterval = null;
+function launchFireworks() {
+  const canvas = document.getElementById("fireworks-canvas");
+  const ctx = canvas.getContext("2d");
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const particles = [];
+  const colors = ['#f59e0b', '#38bdf8', '#ef4444', '#10b981', '#a855f7', '#fbbf24'];
+
+  function createExplosion(x, y) {
+    for (let i = 0; i < 40; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = Math.random() * 5 + 2;
+      particles.push({
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        alpha: 1,
+        life: 0.95
+      });
+    }
+  }
+
+  fireworksInterval = setInterval(() => {
+    createExplosion(Math.random() * canvas.width, Math.random() * (canvas.height * 0.6));
+  }, 400);
+
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.08;
+      p.alpha *= p.life;
+
+      ctx.save();
+      ctx.globalAlpha = p.alpha;
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      if (p.alpha < 0.05) particles.splice(i, 1);
+    }
+    if (document.getElementById("winner-modal").style.display === "flex") {
+      requestAnimationFrame(animate);
+    }
+  }
+  animate();
+}
+
+function checkWinner() {
+  const winner = players.find(p => p.totalScore >= 200);
+  if (winner) {
+    document.getElementById("winner-name-display").innerText = winner.name.toUpperCase();
+    document.getElementById("winner-score-display").innerText = `Wynik: ${winner.totalScore} punktów`;
+    document.getElementById("winner-modal").style.display = "flex";
+    launchFireworks();
+  }
+}
+
+function closeWinnerModal() {
+  clearInterval(fireworksInterval);
+  document.getElementById("winner-modal").style.display = "none";
+  resetDeckFull();
+}
+
+function render() {
+  const totalCardsLeft = getCardsRemainingCount();
+  const effectivePlayerIdx = flip3State.active ? flip3State.targetPlayerIndex : activePlayerIndex;
+  const currPlayer = players[effectivePlayerIdx] || players[0];
+
+  const isOnline = !!mqttClient;
+  const isMyTurn = !isOnline ? true : (currPlayer && currPlayer.id === myClientId);
+  const canClick = isMyTurn && currPlayer && currPlayer.status === "active";
+
+  // WIDOCZNY GÓRNY BANER TURY
+  const turnBanner = document.getElementById("global-turn-banner");
+  if (canClick) {
+    turnBanner.className = "turn-banner my-turn";
+    turnBanner.innerHTML = "👉 TWOJA TURA! DOCIĄGNIJ LUB ZATRZYMAJ";
+  } else {
+    turnBanner.className = "turn-banner other-turn";
+    turnBanner.innerHTML = `⏳ TURA GRACZA: <strong>${currPlayer ? currPlayer.name.toUpperCase() : ''}</strong>`;
+  }
+
+  document.getElementById("btn-hit-huge").disabled = !canClick;
+  document.getElementById("btn-stay-huge").disabled = !canClick;
+  document.getElementById("deck-3d-click").style.pointerEvents = canClick ? "auto" : "none";
+
+  let bustCardsCount = 0;
+  const currentNumbers = new Set(currPlayer.cards.filter(c => !isNaN(c)).map(c => parseInt(c, 10)));
+  for (const [card, count] of Object.entries(deck)) {
+    if (!isNaN(card) && currentNumbers.has(parseInt(card, 10))) bustCardsCount += count;
+  }
+
+  const bustProb = totalCardsLeft > 0 ? (bustCardsCount / totalCardsLeft) * 100 : 0;
+  const scoreData = calculateRoundScore(currPlayer.cards);
+
+  document.getElementById("stat-cards-left").innerText = totalCardsLeft;
+  document.getElementById("stat-bust-prob").innerText = `${bustProb.toFixed(1)}%`;
+  document.getElementById("stat-unique-count").innerText = `${scoreData.uniqueCount}/7`;
+  document.getElementById("stat-active-score").innerText = scoreData.total;
+  document.getElementById("deck-3d-count").innerText = `${totalCardsLeft} kart`;
+
+  const slot3D = document.getElementById("slot-3d-card");
+  if (last3DCard) {
+    let typeClass = !isNaN(last3DCard) ? '' : (last3DCard.startsWith('+') || last3DCard === 'x2' ? 'mod' : 'action');
+    slot3D.innerHTML = `
+      <div class="drawn-card-slot ${typeClass}">
+        <span class="c-lbl">${!isNaN(last3DCard) ? 'NUMER' : 'SPECJALNA'}</span>
+        <div class="c-val">${last3DCard}</div>
+      </div>
+    `;
+  }
+
+  // Lista graczy
+  const playersContainer = document.getElementById("players-list");
+  playersContainer.innerHTML = "";
+  players.forEach((p, idx) => {
+    const isAct = idx === effectivePlayerIdx && p.status === "active";
+    const isMe = p.id === myClientId;
+
+    const div = document.createElement("div");
+    div.className = `player-slot ${p.status} ${isAct ? 'active' : ''}`;
+    div.innerHTML = `
+      <div class="player-header">
+        <strong style="${isMe ? 'color:var(--accent); font-weight:900;' : ''}">${p.name} ${isMe ? '(Ty)' : ''} ${isAct ? '▶' : ''}</strong>
+        <div>
+          <span class="score-badge">R: ${p.roundScore}</span>
+          <span class="score-badge total">S: ${p.totalScore}/200</span>
+        </div>
+      </div>
+      <div class="cards-list">
+        ${p.cards.map(c => {
+          let type = !isNaN(c) ? '' : (c.startsWith('+') || c === 'x2' ? 'mod' : (c === '2ndChance' ? 'shield' : 'action'));
+          return `<span class="card-chip ${type}">${c}</span>`;
+        }).join('')}
+      </div>
+    `;
+    playersContainer.appendChild(div);
+  });
+
+  // Klawiatury
+  const numContainer = document.getElementById("deck-numbers");
+  numContainer.innerHTML = "";
+  for (let i = 0; i <= 12; i++) {
+    const card = i.toString();
+    const count = deck[card] || 0;
+    const btn = document.createElement("button");
+    btn.className = "card-btn";
+    btn.disabled = count === 0 || !canClick;
+    btn.onclick = () => handleCardClick(card);
+    btn.innerHTML = `<span class="val">${card}</span><span class="count">${count}</span>`;
+    numContainer.appendChild(btn);
+  }
+
+  const specContainer = document.getElementById("deck-specials");
+  specContainer.innerHTML = "";
+  ["+2", "+4", "+6", "+8", "+10", "x2", "Freeze", "Flip3", "2ndChance"].forEach(card => {
+    const count = deck[card] || 0;
+    const btn = document.createElement("button");
+    btn.className = `card-btn ${card.startsWith('+') || card === 'x2' ? 'mod' : 'special'}`;
+    btn.disabled = count === 0 || !canClick;
+    btn.onclick = () => handleCardClick(card);
+    btn.innerHTML = `<span class="val">${card}</span><span class="count">${count}</span>`;
+    specContainer.appendChild(btn);
+  });
+}
+
+initDeck();
+render();
+</script>
+</body>
+</html>
