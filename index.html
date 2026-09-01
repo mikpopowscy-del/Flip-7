@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Flip 7 Tracker</title>
+<title>Flip 7 Online Multiplayer P2P</title>
+<!-- Biblioteka do darmowego łączenia telefonów WebRTC -->
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <style>
   :root {
     --bg-main: #0b1329;
@@ -23,33 +25,36 @@
   
   .container { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr; gap: 12px; }
   @media(min-width: 900px) {
-    .container { grid-template-columns: 370px 1fr; }
+    .container { grid-template-columns: 380px 1fr; }
   }
 
   .panel { background: var(--bg-card); border-radius: 10px; border: 1px solid var(--border); padding: 12px; }
   h2, h3 { margin-bottom: 8px; font-size: 1rem; color: var(--accent); }
   
+  /* Panel Połączenia Online */
+  .lobby-box { background: rgba(56, 189, 248, 0.1); border: 1px solid var(--accent); border-radius: 8px; padding: 10px; margin-bottom: 12px; }
+  .lobby-inputs { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+  .lobby-input { background: var(--bg-inner); border: 1px solid var(--border); color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem; flex: 1; }
+
   /* Gracze */
   .player-slot { background: var(--bg-inner); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; border-left: 5px solid var(--border); transition: all 0.2s; }
   .player-slot.active { border-left-color: var(--warning); background: #1e3a5f; box-shadow: 0 0 10px rgba(56, 189, 248, 0.2); }
-  .player-slot.busted { border-left-color: var(--danger); opacity: 0.5; }
+  .player-slot.busted { border-left-color: var(--danger); opacity: 0.55; }
   .player-slot.frozen, .player-slot.stayed { border-left-color: var(--success); }
   .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
   
   .player-name-box { display: flex; align-items: center; gap: 6px; }
-  .btn-edit { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.9rem; padding: 2px 4px; }
-
-  .score-badge { font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; background: rgba(0,0,0,0.4); }
+  .score-badge { font-size: 0.72rem; padding: 3px 6px; border-radius: 4px; font-weight: bold; background: rgba(0,0,0,0.5); }
   .score-badge.total { background: #0284c7; color: #fff; }
   .score-badge.winner { background: var(--warning); color: #000; font-weight: 900; }
 
   .cards-list { display: flex; flex-wrap: wrap; gap: 3px; min-height: 20px; }
-  .card-chip { font-size: 0.7rem; padding: 2px 5px; border-radius: 4px; background: #0284c7; font-weight: bold; }
+  .card-chip { font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; background: #0284c7; font-weight: bold; }
   .card-chip.mod { background: #d97706; }
   .card-chip.action { background: var(--purple); }
   .card-chip.shield { background: #059669; }
 
-  /* Klawiatura kart zoptymalizowana pod dotyk */
+  /* Klawiatury kart */
   .deck-section-title { font-size: 0.75rem; color: var(--text-muted); margin: 6px 0 4px 0; text-transform: uppercase; letter-spacing: 0.5px; font-weight: bold; }
   .deck-keypad { display: grid; grid-template-columns: repeat(auto-fill, minmax(54px, 1fr)); gap: 5px; margin-bottom: 8px; }
   .card-btn { background: var(--bg-inner); border: 1px solid var(--border); color: var(--text-main); border-radius: 6px; padding: 10px 2px; text-align: center; cursor: pointer; touch-action: manipulation; }
@@ -76,12 +81,82 @@
   .stat-card .num.danger { color: var(--danger); }
   .stat-card .lbl { font-size: 0.62rem; color: var(--text-muted); margin-top: 2px; }
 
-  .advise-box { background: rgba(56, 189, 248, 0.08); border: 1px solid var(--accent); border-radius: 6px; padding: 8px 10px; font-size: 0.8rem; line-height: 1.35; margin-bottom: 10px; }
+  .advise-box { background: rgba(56, 189, 248, 0.08); border: 1px solid var(--accent); border-radius: 6px; padding: 8px 10px; font-size: 0.82rem; line-height: 1.35; margin-bottom: 10px; }
   .prob-table { width: 100%; border-collapse: collapse; font-size: 0.72rem; text-align: left; }
   .prob-table th, .prob-table td { padding: 4px 5px; border-bottom: 1px solid var(--border); }
   .prob-table th { color: var(--text-muted); }
 
-  /* Modal wyboru */
+  /* Sekcja 3D */
+  .arena-3d-box {
+    background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+  }
+
+  .deck-3d-wrapper {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+    perspective: 800px;
+  }
+
+  .card-3d-deck {
+    width: 90px;
+    height: 130px;
+    background: repeating-linear-gradient(45deg, #1e3a8a, #1e3a8a 10px, #172554 10px, #172554 20px);
+    border: 3px solid #60a5fa;
+    border-radius: 8px;
+    box-shadow: 0 0 0 2px #0f172a, 3px 3px 0 #1e293b, 6px 6px 0 #0f172a, 0 12px 20px rgba(0,0,0,0.6);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s, box-shadow 0.15s;
+    user-select: none;
+    text-align: center;
+  }
+  .card-3d-deck:active { transform: scale(0.95) translateY(4px); }
+  .card-3d-deck .deck-title { font-size: 1rem; font-weight: 900; color: #fff; }
+  .card-3d-deck .deck-sub { font-size: 0.65rem; color: #93c5fd; font-weight: bold; margin-top: 2px; }
+
+  .drawn-3d-card {
+    width: 88px;
+    height: 128px;
+    background: #ffffff;
+    border-radius: 8px;
+    border: 3px solid #cbd5e1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #0f172a;
+    font-weight: 900;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+    animation: flipCard 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  .drawn-3d-card.mod { background: #fef3c7; border-color: #f59e0b; color: #b45309; }
+  .drawn-3d-card.action { background: #f3e8ff; border-color: #a855f7; color: #6b21a8; }
+  .drawn-3d-card .c-val { font-size: 2rem; }
+  .drawn-3d-card .c-lbl { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  @keyframes flipCard {
+    0% { transform: scale(0.6) rotateY(90deg); opacity: 0; }
+    100% { transform: scale(1) rotateY(0deg); opacity: 1; }
+  }
+
+  .arena-controls { display: flex; gap: 8px; width: 100%; max-width: 380px; }
+
+  /* Modal */
   .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 16px; }
   .modal-content { background: var(--bg-card); border: 1px solid var(--accent); border-radius: 10px; padding: 16px; max-width: 360px; width: 100%; }
   .modal-content h3 { margin-bottom: 10px; }
@@ -96,22 +171,38 @@
 <body>
 
 <div class="container">
-  <!-- PANEL LEWY: Gracze & Wyniki -->
+  <!-- LEWY PANEL: Lobby Online & Gracze -->
   <div class="panel">
+    <!-- POKÓJ ONLINE -->
+    <div class="lobby-box">
+      <div style="font-size: 0.85rem; font-weight: bold; color: var(--accent);">🌐 Gra Online (Multiplayer)</div>
+      <div id="lobby-status" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">Grasz offline / lokalnie.</div>
+      
+      <div class="lobby-inputs" id="lobby-setup">
+        <input type="text" id="my-name-input" class="lobby-input" placeholder="Twoje imię" value="Gracz 1">
+        <button class="action-btn btn-primary" onclick="createRoom()">Stwórz Pokój (Host)</button>
+      </div>
+
+      <div class="lobby-inputs" id="lobby-join">
+        <input type="text" id="room-pin-input" class="lobby-input" placeholder="Wpisz 4-cyfrowy PIN">
+        <button class="action-btn btn-secondary" onclick="joinRoom()">Dołącz</button>
+      </div>
+    </div>
+
     <h2>Gracze (Cel: 200 pkt)</h2>
     <div id="players-list"></div>
     
     <div class="btn-group" style="margin-bottom: 8px;">
-      <button class="action-btn btn-secondary" style="flex:1" onclick="addPlayer()">+ Gracz</button>
-      <button class="action-btn btn-stay" style="flex:1.2" onclick="playerStay(activePlayerIndex)">Zatrzymaj (Stay)</button>
+      <button class="action-btn btn-stay" id="btn-stay-main" style="flex:1" onclick="playerStay(activePlayerIndex)">Zatrzymaj (Stay)</button>
     </div>
-    <div class="btn-group">
+    
+    <div class="btn-group" id="host-controls">
       <button class="action-btn btn-shuffle" style="flex:1" onclick="manualShuffle()">🔀 Przetasuj</button>
       <button class="action-btn btn-danger" style="flex:1" onclick="resetDeckFull()">Reset Gry</button>
     </div>
   </div>
 
-  <!-- PANEL PRAWY: Wybór Kart i Szanse -->
+  <!-- PRAWY PANEL: 3D Deck, Klawiatura, Statystyki -->
   <div class="panel">
     <div id="info-banner" class="banner-info"></div>
 
@@ -119,6 +210,7 @@
       Tryb FLIP 3 dla: <span id="flip3-target-name"></span> (Pozostało: <span id="flip3-count">0</span>)
     </div>
 
+    <!-- Statystyki HUD -->
     <div class="stats-grid">
       <div class="stat-card">
         <div class="num" id="stat-cards-left">94</div>
@@ -141,11 +233,33 @@
     <h3>Rekomendacja</h3>
     <div class="advise-box" id="strategic-advice">Rozpocznij dobieranie kart.</div>
 
-    <div class="deck-section-title">Karty Numeryczne (Auto-następny gracz)</div>
+    <!-- DOCIĄGANIE KART 3D -->
+    <div class="arena-3d-box">
+      <div class="deck-3d-wrapper">
+        <div class="card-3d-deck" id="deck-3d-click" onclick="draw3DCard()">
+          <div class="deck-title">FLIP 7</div>
+          <div class="deck-sub" id="deck-3d-count">94 kart</div>
+        </div>
+        <div id="slot-3d-card">
+          <div class="drawn-3d-card" style="border-style: dashed; background: rgba(255,255,255,0.05); color: var(--text-muted);">
+            <span style="font-size: 0.65rem;">KLIKNIJ TALIE</span>
+          </div>
+        </div>
+      </div>
+      <div class="arena-controls">
+        <button class="action-btn btn-primary" id="btn-hit-3d" style="flex:1;" onclick="draw3DCard()">Dociągnij (Hit 3D)</button>
+        <button class="action-btn btn-stay" id="btn-stay-3d" style="flex:1;" onclick="playerStay(activePlayerIndex)">Zatrzymaj (Stay)</button>
+      </div>
+    </div>
+
+    <div class="deck-section-title">Karty Numeryczne (Tura przechodzi automatycznie)</div>
     <div class="deck-keypad" id="deck-numbers"></div>
 
-    <div class="deck-section-title">Akcje i Modyfikatory (Przydziel)</div>
-    <div class="deck-keypad" id="deck-specials"></div>
+    <div class="deck-section-title">Modyfikatory punktów (Trafiają od razu do Ciebie)</div>
+    <div class="deck-keypad" id="deck-modifiers"></div>
+
+    <div class="deck-section-title">Karty Akcji (Freeze / Flip 3 / Second Chance)</div>
+    <div class="deck-keypad" id="deck-actions"></div>
 
     <h3 style="margin-top: 12px;">Rozkład prawdopodobieństw w talii</h3>
     <table class="prob-table">
@@ -162,10 +276,10 @@
   </div>
 </div>
 
-<!-- MODAL WYBORU GRACZA DLA KART SPECJALNYCH -->
+<!-- MODAL PRZYDZIAŁU KART AKCJI -->
 <div class="modal-overlay" id="target-modal">
   <div class="modal-content">
-    <h3 id="modal-card-title">Przydziel kartę</h3>
+    <h3 id="modal-card-title">Przydziel kartę akcji</h3>
     <div id="modal-recommendation" style="font-size: 0.78rem; color: var(--accent); margin-bottom: 10px;"></div>
     <div id="modal-target-list"></div>
     <button class="action-btn btn-secondary" style="width: 100%; margin-top: 6px;" onclick="closeModal()">Anuluj</button>
@@ -182,10 +296,11 @@ const INITIAL_DECK = {
 
 let deck = {};
 let players = [
-  { id: 1, name: "Ty", cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 },
-  { id: 2, name: "Przeciwnik 1", cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 }
+  { id: "local_1", name: "Mikołaj", cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 },
+  { id: "local_2", name: "Mama", cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 }
 ];
 let activePlayerIndex = 0;
+let last3DCard = null;
 
 let flip3State = {
   active: false,
@@ -196,6 +311,12 @@ let flip3State = {
 
 let pendingSpecialCard = null;
 
+// MULTIPLAYER STATE
+let peer = null;
+let connections = [];
+let isHost = false;
+let myPeerId = null;
+
 function initDeck() {
   deck = JSON.parse(JSON.stringify(INITIAL_DECK));
 }
@@ -204,11 +325,110 @@ function getCardsRemainingCount() {
   return Object.values(deck).reduce((a, b) => a + b, 0);
 }
 
-// Sprawdzenie czy talia jest pusta i natychmiastowe automatyczne przetasowanie
+// SYNCHRONIZACJA SIECIOWA
+function broadcastGameState() {
+  if (!isHost) return;
+  const payload = {
+    type: "SYNC",
+    deck,
+    players,
+    activePlayerIndex,
+    last3DCard,
+    flip3State
+  };
+  connections.forEach(conn => {
+    if (conn.open) conn.send(payload);
+  });
+}
+
+function sendActionToHost(actionData) {
+  if (isHost) {
+    handleIncomingAction(actionData);
+  } else if (connections[0] && connections[0].open) {
+    connections[0].send({ type: "ACTION", data: actionData });
+  }
+}
+
+function handleIncomingAction(action) {
+  if (action.name === "DRAW_3D") draw3DCard();
+  else if (action.name === "CLICK_CARD") handleCardClick(action.card);
+  else if (action.name === "STAY") playerStay(action.playerIdx);
+  else if (action.name === "ASSIGN_SPECIAL") confirmSpecialAssignment(action.targetIdx, action.cardKey);
+}
+
+// TWORZENIE I DOŁĄCZANIE DO POKOJU (WEBRTC PEERJS)
+function createRoom() {
+  const myName = document.getElementById("my-name-input").value.trim() || "Host";
+  const pin = Math.floor(1000 + Math.random() * 9000).toString();
+  
+  peer = new Peer(`flip7-room-${pin}`);
+  
+  peer.on('open', (id) => {
+    isHost = true;
+    myPeerId = id;
+    players = [{ id: id, name: myName, cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 }];
+    document.getElementById("lobby-status").innerHTML = `🎮 Jesteś HOST-em! PIN Pokoju: <strong style="color:var(--warning); font-size:1.1rem;">${pin}</strong>`;
+    document.getElementById("lobby-setup").style.display = "none";
+    document.getElementById("lobby-join").style.display = "none";
+    initDeck();
+    render();
+  });
+
+  peer.on('connection', (conn) => {
+    connections.push(conn);
+    conn.on('data', (data) => {
+      if (data.type === "JOIN") {
+        players.push({ id: conn.peer, name: data.name, cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 });
+        showNotification(`Gracz ${data.name} dołączył!`);
+        broadcastGameState();
+        render();
+      } else if (data.type === "ACTION") {
+        handleIncomingAction(data.data);
+      }
+    });
+  });
+
+  peer.on('error', () => {
+    alert("Błąd tworzenia pokoju. Spróbuj ponownie.");
+  });
+}
+
+function joinRoom() {
+  const pin = document.getElementById("room-pin-input").value.trim();
+  const myName = document.getElementById("my-name-input").value.trim() || "Gracz";
+  if (!pin) { alert("Wpisz 4-cyfrowy PIN!"); return; }
+
+  peer = new Peer();
+  peer.on('open', (id) => {
+    myPeerId = id;
+    const conn = peer.connect(`flip7-room-${pin}`);
+    conn.on('open', () => {
+      connections = [conn];
+      isHost = false;
+      conn.send({ type: "JOIN", name: myName });
+      document.getElementById("lobby-status").innerHTML = `✅ Połączono z pokojem: <strong>${pin}</strong>`;
+      document.getElementById("lobby-setup").style.display = "none";
+      document.getElementById("lobby-join").style.display = "none";
+      document.getElementById("host-controls").style.display = "none";
+    });
+
+    conn.on('data', (data) => {
+      if (data.type === "SYNC") {
+        deck = data.deck;
+        players = data.players;
+        activePlayerIndex = data.activePlayerIndex;
+        last3DCard = data.last3DCard;
+        flip3State = data.flip3State;
+        render();
+      }
+    });
+  });
+}
+
 function checkDeckExhaustion() {
   if (getCardsRemainingCount() <= 0) {
     initDeck();
-    showNotification("🔀 Talia się skończyła! Została automatycznie przetasowana (94 karty).");
+    showNotification("🔀 Talia skończyła się! Automatyczne przetasowanie (94 karty).");
   }
 }
 
@@ -216,14 +436,14 @@ function showNotification(msg) {
   const banner = document.getElementById("info-banner");
   banner.innerText = msg;
   banner.style.display = "block";
-  setTimeout(() => {
-    banner.style.display = "none";
-  }, 3500);
+  setTimeout(() => { banner.style.display = "none"; }, 3500);
 }
 
 function manualShuffle() {
+  if (!isHost && connections.length > 0) return;
   initDeck();
   showNotification("🔀 Talia przetasowana (94 karty)!");
+  broadcastGameState();
   render();
 }
 
@@ -263,37 +483,64 @@ function checkBust(cards) {
   return { isBusted: false };
 }
 
-function renamePlayer(idx) {
-  const currentName = players[idx].name;
-  const newName = prompt("Wpisz nowe imię gracza:", currentName);
-  if (newName && newName.trim() !== "") {
-    players[idx].name = newName.trim();
-    render();
+function draw3DCard() {
+  const effectiveIdx = flip3State.active ? flip3State.targetPlayerIndex : activePlayerIndex;
+  const currP = players[effectiveIdx];
+  if (currP.status !== "active") return;
+
+  if (!isHost && connections.length > 0) {
+    sendActionToHost({ name: "DRAW_3D" });
+    return;
   }
+
+  const pool = [];
+  for (const [card, count] of Object.entries(deck)) {
+    for (let i = 0; i < count; i++) pool.push(card);
+  }
+  if (pool.length === 0) return;
+
+  const drawn = pool[Math.floor(Math.random() * pool.length)];
+  last3DCard = drawn;
+  handleCardClick(drawn);
 }
 
 function handleCardClick(cardKey) {
   if (deck[cardKey] <= 0) return;
+  last3DCard = cardKey;
 
-  const isSpecial = isNaN(cardKey);
+  if (!isHost && connections.length > 0) {
+    sendActionToHost({ name: "CLICK_CARD", card: cardKey });
+    return;
+  }
+
+  const isTargetAction = (cardKey === "Freeze" || cardKey === "Flip3");
   
   if (flip3State.active) {
-    applyCardToPlayer(flip3State.targetPlayerIndex, cardKey);
-    deck[cardKey]--;
-    checkDeckExhaustion();
+    if (isTargetAction) {
+      deck[cardKey]--;
+      checkDeckExhaustion();
+      pendingSpecialCard = cardKey;
+      openSpecialModal(cardKey);
+      return;
+    } else {
+      applyCardToPlayer(flip3State.targetPlayerIndex, cardKey);
+      deck[cardKey]--;
+      checkDeckExhaustion();
+    }
+    
     flip3State.remainingDraws--;
-
     if (flip3State.remainingDraws <= 0 || players[flip3State.targetPlayerIndex].status !== "active") {
       flip3State.active = false;
       activePlayerIndex = flip3State.returnPlayerIndex;
       advanceTurnToNextActive();
     }
     checkAutoRoundProgression();
+    broadcastGameState();
     render();
     return;
   }
 
-  if (isSpecial) {
+  if (isTargetAction) {
     pendingSpecialCard = cardKey;
     openSpecialModal(cardKey);
   } else {
@@ -302,6 +549,7 @@ function handleCardClick(cardKey) {
     applyCardToPlayer(activePlayerIndex, cardKey);
     advanceTurnToNextActive();
     checkAutoRoundProgression();
+    broadcastGameState();
     render();
   }
 }
@@ -357,27 +605,6 @@ function openSpecialModal(cardKey) {
   const modal = document.getElementById("target-modal");
   document.getElementById("modal-card-title").innerText = `Komu przydzielić: ${cardKey}?`;
   
-  let reco = "";
-  const activeOpponents = players.filter((p, i) => i !== activePlayerIndex && p.status === "active");
-  
-  if (cardKey === "Freeze") {
-    if (activeOpponents.length > 0) {
-      const highestOpp = [...activeOpponents].sort((a,b) => b.roundScore - a.roundScore)[0];
-      reco = `Rekomendacja: <strong>${highestOpp.name}</strong> (zatrzymaj jego ${highestOpp.roundScore} pkt).`;
-    } else {
-      reco = `Brak rywali w grze - zamroź siebie, by zabezpieczyć punkty.`;
-    }
-  } else if (cardKey === "Flip3") {
-    if (activeOpponents.length > 0) {
-      const mostCardsOpp = [...activeOpponents].sort((a,b) => b.cards.length - a.cards.length)[0];
-      reco = `Rekomendacja: <strong>${mostCardsOpp.name}</strong> (najwięcej kart, najwyższa szansa na BUST).`;
-    }
-  } else if (cardKey.startsWith("+") || cardKey === "x2" || cardKey === "2ndChance") {
-    reco = `Rekomendacja: <strong>${players[activePlayerIndex].name}</strong> (wzmocnij swój układ).`;
-  }
-  
-  document.getElementById("modal-recommendation").innerHTML = reco;
-
   const targetList = document.getElementById("modal-target-list");
   targetList.innerHTML = "";
 
@@ -386,12 +613,17 @@ function openSpecialModal(cardKey) {
     const btn = document.createElement("button");
     btn.className = "target-btn";
     btn.disabled = !isAvailable;
-    
-    let statusLabel = isAvailable ? `aktywny (${p.roundScore} pkt)` : `zakończył (${p.status})`;
-    btn.innerHTML = `<span>${p.name}</span> <span style="font-size: 0.72rem; color: ${isAvailable ? 'var(--accent)' : 'var(--text-muted)'}">${statusLabel}</span>`;
+    btn.innerHTML = `<span>${p.name}</span> <span style="font-size: 0.72rem; color: ${isAvailable ? 'var(--accent)' : 'var(--text-muted)'}">${isAvailable ? p.roundScore + ' pkt' : p.status}</span>`;
     
     if (isAvailable) {
-      btn.onclick = () => confirmSpecialAssignment(idx);
+      btn.onclick = () => {
+        closeModal();
+        if (!isHost && connections.length > 0) {
+          sendActionToHost({ name: "ASSIGN_SPECIAL", targetIdx: idx, cardKey: cardKey });
+        } else {
+          confirmSpecialAssignment(idx, cardKey);
+        }
+      };
     }
     targetList.appendChild(btn);
   });
@@ -404,11 +636,10 @@ function closeModal() {
   pendingSpecialCard = null;
 }
 
-function confirmSpecialAssignment(targetIdx) {
-  const cardKey = pendingSpecialCard;
+function confirmSpecialAssignment(targetIdx, cardKeyOverride) {
+  const cardKey = cardKeyOverride || pendingSpecialCard;
   deck[cardKey]--;
   checkDeckExhaustion();
-  closeModal();
 
   if (cardKey === "Flip3") {
     flip3State = {
@@ -417,6 +648,7 @@ function confirmSpecialAssignment(targetIdx) {
       remainingDraws: 3,
       returnPlayerIndex: activePlayerIndex
     };
+    broadcastGameState();
     render();
     return;
   }
@@ -424,6 +656,7 @@ function confirmSpecialAssignment(targetIdx) {
   applyCardToPlayer(targetIdx, cardKey);
   advanceTurnToNextActive();
   checkAutoRoundProgression();
+  broadcastGameState();
   render();
 }
 
@@ -439,6 +672,10 @@ function advanceTurnToNextActive() {
 }
 
 function playerStay(idx) {
+  if (!isHost && connections.length > 0) {
+    sendActionToHost({ name: "STAY", playerIdx: idx });
+    return;
+  }
   const p = players[idx];
   if (p.status === "active") {
     p.status = "stayed";
@@ -448,6 +685,7 @@ function playerStay(idx) {
     advanceTurnToNextActive();
     checkAutoRoundProgression();
   }
+  broadcastGameState();
   render();
 }
 
@@ -476,16 +714,12 @@ function autoStartNextRound() {
   } else {
     showNotification("🔁 Wszyscy zakończyli. Nowa runda!");
   }
-  render();
-}
-
-function addPlayer() {
-  const num = players.length + 1;
-  players.push({ id: num, name: `Gracz ${num}`, cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 });
+  broadcastGameState();
   render();
 }
 
 function resetDeckFull() {
+  if (!isHost && connections.length > 0) return;
   initDeck();
   players.forEach(p => {
     p.cards = [];
@@ -496,7 +730,9 @@ function resetDeckFull() {
   });
   flip3State.active = false;
   activePlayerIndex = 0;
+  last3DCard = null;
   showNotification("Gra zresetowana do zera.");
+  broadcastGameState();
   render();
 }
 
@@ -512,15 +748,20 @@ function render() {
   const effectivePlayerIdx = flip3State.active ? flip3State.targetPlayerIndex : activePlayerIndex;
   const currPlayer = players[effectivePlayerIdx] || players[0];
 
+  // Blokowanie przycisków, jeśli nie jest to tura danego telefonu w trybie online
+  const isMyTurn = (!peer || !myPeerId) ? true : (currPlayer.id === myPeerId);
+  document.getElementById("btn-hit-3d").disabled = !isMyTurn || currPlayer.status !== "active";
+  document.getElementById("btn-stay-3d").disabled = !isMyTurn || currPlayer.status !== "active";
+  document.getElementById("btn-stay-main").disabled = !isMyTurn || currPlayer.status !== "active";
+  document.getElementById("deck-3d-click").style.pointerEvents = (isMyTurn && currPlayer.status === "active") ? "auto" : "none";
+
   let bustCardsCount = 0;
   const currentNumbers = new Set(currPlayer.cards.filter(c => !isNaN(c)).map(c => parseInt(c, 10)));
 
   for (const [card, count] of Object.entries(deck)) {
     if (!isNaN(card)) {
       const val = parseInt(card, 10);
-      if (currentNumbers.has(val)) {
-        bustCardsCount += count;
-      }
+      if (currentNumbers.has(val)) bustCardsCount += count;
     }
   }
 
@@ -531,6 +772,18 @@ function render() {
   document.getElementById("stat-bust-prob").innerText = `${bustProb.toFixed(1)}%`;
   document.getElementById("stat-unique-count").innerText = `${scoreData.uniqueCount} / 7`;
   document.getElementById("stat-active-score").innerText = scoreData.total;
+  document.getElementById("deck-3d-count").innerText = `${totalCardsLeft} kart`;
+
+  const slot3D = document.getElementById("slot-3d-card");
+  if (last3DCard) {
+    let typeClass = !isNaN(last3DCard) ? '' : (last3DCard.startsWith('+') || last3DCard === 'x2' ? 'mod' : 'action');
+    slot3D.innerHTML = `
+      <div class="drawn-3d-card ${typeClass}">
+        <span class="c-lbl">${!isNaN(last3DCard) ? 'NUMER' : 'SPECJALNA'}</span>
+        <div class="c-val">${last3DCard}</div>
+      </div>
+    `;
+  }
 
   const flip3Banner = document.getElementById("flip3-banner");
   if (flip3State.active) {
@@ -541,22 +794,11 @@ function render() {
     flip3Banner.style.display = "none";
   }
 
-  let advice = "";
-  const allFinished = players.every(p => p.status !== "active");
-  if (allFinished) {
-    advice = `<strong>Runda zakończona!</strong> Trwa przejście do nowej rundy...`;
-  } else if (currPlayer.status !== "active") {
-    advice = `Oczekiwanie na kolejnego gracza...`;
-  } else if (flip3State.active) {
-    advice = `<strong>FLIP 3:</strong> Wybierz kartę dla ${currPlayer.name}. Szansa na Bust: <strong>${bustProb.toFixed(1)}%</strong>.`;
-  } else {
-    if (bustProb === 0) {
-      advice = `<strong>0% na Bust:</strong> Bezpieczne dociągnięcie.`;
-    } else if (bustProb > 35) {
-      advice = `<strong>Ryzyko ${bustProb.toFixed(1)}%:</strong> Rozważ <strong>Stay</strong> (${scoreData.total} pkt).`;
-    } else {
-      advice = `<strong>Ryzyko ${bustProb.toFixed(1)}%:</strong> Dobieraj dalej po bonus +15.`;
-    }
+  let advice = isMyTurn ? `<strong>Twoja tura!</strong> ` : `Czekaj na ruch gracza <strong>${currPlayer.name}</strong>... `;
+  if (isMyTurn) {
+    if (bustProb === 0) advice += `0% ryzyka na Bust. Dobieraj!`;
+    else if (bustProb > 35) advice += `Ryzyko ${bustProb.toFixed(1)}%. Rozważ Stay (${scoreData.total} pkt).`;
+    else advice += `Ryzyko ${bustProb.toFixed(1)}%. Dobieraj po bonus +15.`;
   }
   document.getElementById("strategic-advice").innerHTML = advice;
 
@@ -572,8 +814,7 @@ function render() {
     div.innerHTML = `
       <div class="player-header">
         <div class="player-name-box">
-          <strong>${p.name} ${isAct ? '▶' : ''}</strong>
-          <button class="btn-edit" onclick="renamePlayer(${idx})" title="Zmień imię">✏️</button>
+          <strong>${p.name} ${isAct ? '▶ (Tura)' : ''}</strong>
         </div>
         <div>
           <span class="score-badge">Runda: ${p.roundScore}</span>
@@ -590,6 +831,7 @@ function render() {
     playersContainer.appendChild(div);
   });
 
+  // Klawiatura numeryczna
   const numContainer = document.getElementById("deck-numbers");
   numContainer.innerHTML = "";
   for (let i = 0; i <= 12; i++) {
@@ -597,25 +839,39 @@ function render() {
     const count = deck[card] || 0;
     const btn = document.createElement("button");
     btn.className = "card-btn";
-    btn.disabled = count === 0 || currPlayer.status !== "active";
+    btn.disabled = count === 0 || currPlayer.status !== "active" || !isMyTurn;
     btn.onclick = () => handleCardClick(card);
     btn.innerHTML = `<span class="val">${card}</span><span class="count">${count} szt.</span>`;
     numContainer.appendChild(btn);
   }
 
-  const specContainer = document.getElementById("deck-specials");
-  specContainer.innerHTML = "";
-  const specials = ["+2", "+4", "+6", "+8", "+10", "x2", "Freeze", "Flip3", "2ndChance"];
-  specials.forEach(card => {
+  // Modyfikatory
+  const modContainer = document.getElementById("deck-modifiers");
+  modContainer.innerHTML = "";
+  ["+2", "+4", "+6", "+8", "+10", "x2"].forEach(card => {
     const count = deck[card] || 0;
     const btn = document.createElement("button");
-    btn.className = `card-btn ${card.startsWith('+') || card === 'x2' ? 'mod' : 'special'}`;
-    btn.disabled = count === 0;
+    btn.className = `card-btn mod`;
+    btn.disabled = count === 0 || currPlayer.status !== "active" || !isMyTurn;
     btn.onclick = () => handleCardClick(card);
     btn.innerHTML = `<span class="val">${card}</span><span class="count">${count} szt.</span>`;
-    specContainer.appendChild(btn);
+    modContainer.appendChild(btn);
   });
 
+  // Akcje
+  const actContainer = document.getElementById("deck-actions");
+  actContainer.innerHTML = "";
+  ["Freeze", "Flip3", "2ndChance"].forEach(card => {
+    const count = deck[card] || 0;
+    const btn = document.createElement("button");
+    btn.className = `card-btn special`;
+    btn.disabled = count === 0 || currPlayer.status !== "active" || !isMyTurn;
+    btn.onclick = () => handleCardClick(card);
+    btn.innerHTML = `<span class="val">${card}</span><span class="count">${count} szt.</span>`;
+    actContainer.appendChild(btn);
+  });
+
+  // Tabela
   const tbody = document.getElementById("prob-tbody");
   tbody.innerHTML = "";
   for (const [card, count] of Object.entries(deck)) {
