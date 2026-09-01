@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Flip 7 Pro</title>
+<title>Flip 7</title>
 <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
 <style>
   :root {
@@ -20,22 +20,22 @@
     --border: rgba(255, 255, 255, 0.12);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
-  body { background: var(--bg-main); color: var(--text-main); padding: 10px; min-height: 100vh; display: flex; flex-direction: column; }
+  body { background: var(--bg-main); color: var(--text-main); padding: 8px; min-height: 100vh; display: flex; flex-direction: column; }
   
   .game-wrapper {
-    max-width: 1400px;
+    max-width: 1350px;
     margin: 0 auto;
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
   }
 
-  /* GÓRNY PASEK BANERÓW NA PC (2 RÓWNE KOLUMNY) */
+  /* GÓRNY PASEK BANERÓW NA PC (2 RÓWNE KOLUMNY OBOK SIEBIE) */
   .top-banners-grid {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 10px;
     width: 100%;
   }
   @media(min-width: 900px) {
@@ -46,8 +46,8 @@
 
   .turn-banner {
     width: 100%;
-    min-height: 56px;
-    padding: 12px;
+    min-height: 52px;
+    padding: 10px 14px;
     border-radius: 12px;
     display: flex;
     align-items: center;
@@ -77,8 +77,8 @@
 
   .special-alert-banner {
     width: 100%;
-    min-height: 56px;
-    padding: 10px 14px;
+    min-height: 52px;
+    padding: 8px 14px;
     border-radius: 12px;
     display: flex;
     flex-direction: column;
@@ -109,19 +109,24 @@
     color: #000;
     box-shadow: 0 0 25px rgba(251, 191, 36, 0.9);
   }
-  .special-alert-title { font-size: 1rem; font-weight: 900; letter-spacing: 0.5px; }
-  .special-alert-desc { font-size: 0.85rem; font-weight: 800; opacity: 0.95; }
+  .special-alert-banner.discard-mode {
+    background: linear-gradient(135deg, #475569 0%, #64748b 100%);
+    border-color: #94a3b8;
+    color: #fff;
+  }
+  .special-alert-title { font-size: 0.95rem; font-weight: 900; letter-spacing: 0.5px; }
+  .special-alert-desc { font-size: 0.82rem; font-weight: 800; opacity: 0.95; }
   
   @keyframes alertBounce {
     0% { transform: scale(0.95) translateY(-5px); }
     100% { transform: scale(1) translateY(0); }
   }
 
-  /* GŁÓWNY UKŁAD 2-KOLUMNOWY */
+  /* GŁÓWNY UKŁAD 2-KOLUMNOWY NA PC */
   .main-grid {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 10px;
     width: 100%;
   }
   @media(min-width: 900px) {
@@ -133,19 +138,19 @@
 
   .panel {
     background: var(--bg-card);
-    border-radius: 16px;
+    border-radius: 14px;
     border: 1px solid var(--border);
-    padding: 16px;
+    padding: 14px;
     box-shadow: 0 6px 20px rgba(0,0,0,0.35);
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
   }
 
   /* STATYSTYKI */
-  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-  .stat-card { background: var(--bg-inner); padding: 10px 4px; border-radius: 10px; text-align: center; }
-  .stat-card .num { font-size: 1.3rem; font-weight: 900; color: var(--accent); }
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .stat-card { background: var(--bg-inner); padding: 8px 4px; border-radius: 8px; text-align: center; }
+  .stat-card .num { font-size: 1.2rem; font-weight: 900; color: var(--accent); }
   .stat-card .num.danger { color: var(--danger); }
   .stat-card .lbl { font-size: 0.65rem; color: var(--text-muted); margin-top: 2px; text-transform: uppercase; font-weight: bold; }
 
@@ -153,39 +158,39 @@
   .arena-box {
     background: radial-gradient(circle at center, #1e293b 0%, #080f20 100%);
     border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 16px;
+    border-radius: 12px;
+    padding: 14px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
   }
-  .deck-row { display: flex; gap: 20px; align-items: center; justify-content: center; }
+  .deck-row { display: flex; gap: 16px; align-items: center; justify-content: center; }
 
   .card-3d-deck {
-    width: 110px; height: 155px;
+    width: 105px; height: 150px;
     background: repeating-linear-gradient(45deg, #1e3a8a, #1e3a8a 10px, #172554 10px, #172554 20px);
-    border: 3px solid #60a5fa; border-radius: 12px;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.6);
+    border: 3px solid #60a5fa; border-radius: 10px;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.6);
     cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; user-select: none;
     transition: transform 0.1s ease;
   }
   .card-3d-deck:active { transform: scale(0.96); }
 
   .drawn-card-slot {
-    width: 110px; height: 155px; background: #ffffff; border-radius: 12px; border: 3px solid #cbd5e1;
+    width: 105px; height: 150px; background: #ffffff; border-radius: 10px; border: 3px solid #cbd5e1;
     display: flex; flex-direction: column; align-items: center; justify-content: center; color: #0f172a; font-weight: 900;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.4);
   }
   .drawn-card-slot.mod { background: #fef3c7; border-color: #f59e0b; color: #b45309; }
   .drawn-card-slot.action { background: #f3e8ff; border-color: #a855f7; color: #6b21a8; }
-  .drawn-card-slot .c-val { font-size: 2.6rem; }
-  .drawn-card-slot .c-lbl { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px; }
+  .drawn-card-slot .c-val { font-size: 2.5rem; }
+  .drawn-card-slot .c-lbl { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; }
 
-  /* PRZYCISKI GŁÓWNE */
-  .controls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 440px; }
+  /* PRZYCISKI GŁÓWNE (LOSUJ / PASS) */
+  .controls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; max-width: 440px; }
   button.action-btn-huge {
-    cursor: pointer; border: none; border-radius: 10px; padding: 14px 10px;
+    cursor: pointer; border: none; border-radius: 10px; padding: 13px 8px;
     font-weight: 900; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.5px;
     touch-action: manipulation; transition: transform 0.1s;
   }
@@ -195,25 +200,25 @@
   .btn-stay-huge { background: var(--success); color: #000; box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4); }
 
   /* KLAWIATURY KART */
-  .deck-section-title { font-size: 0.75rem; color: var(--text-muted); margin: 6px 0 4px 0; text-transform: uppercase; font-weight: bold; }
-  .deck-keypad { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-bottom: 8px; }
+  .deck-section-title { font-size: 0.72rem; color: var(--text-muted); margin: 4px 0 2px 0; text-transform: uppercase; font-weight: bold; }
+  .deck-keypad { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; margin-bottom: 6px; }
   .deck-keypad.specials-grid { grid-template-columns: repeat(6, 1fr); }
   .deck-keypad.actions-grid { grid-template-columns: repeat(3, 1fr); }
 
-  .card-btn { background: var(--bg-inner); border: 1px solid var(--border); color: var(--text-main); border-radius: 8px; padding: 10px 2px; text-align: center; }
+  .card-btn { background: var(--bg-inner); border: 1px solid var(--border); color: var(--text-main); border-radius: 6px; padding: 8px 1px; text-align: center; }
   .card-btn:disabled { opacity: 0.2; }
-  .card-btn .val { font-size: 1.05rem; font-weight: bold; }
-  .card-btn .count { font-size: 0.68rem; color: var(--text-muted); display: block; margin-top: 2px; }
+  .card-btn .val { font-size: 1rem; font-weight: bold; }
+  .card-btn .count { font-size: 0.65rem; color: var(--text-muted); display: block; margin-top: 1px; }
   .card-btn.special { border-color: var(--purple); }
   .card-btn.mod { border-color: var(--warning); }
 
-  /* PRAWY PANEL (LOBBY & GRACZE) */
+  /* PRAWY PANEL */
   .pin-display-badge {
-    background: rgba(56, 189, 248, 0.1);
+    background: rgba(56, 189, 248, 0.08);
     border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 10px 14px;
-    font-size: 0.95rem;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.9rem;
     font-weight: bold;
     color: var(--text-main);
     display: flex;
@@ -221,22 +226,22 @@
     align-items: center;
   }
 
-  .lobby-inputs { display: flex; gap: 6px; margin-top: 8px; }
-  .lobby-input { background: var(--bg-inner); border: 1px solid var(--border); color: #fff; padding: 10px; border-radius: 8px; font-size: 0.85rem; flex: 1; }
+  .lobby-inputs { display: flex; gap: 6px; margin-top: 6px; }
+  .lobby-input { background: var(--bg-inner); border: 1px solid var(--border); color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem; flex: 1; }
 
-  .players-scroll { display: flex; flex-direction: column; gap: 10px; }
-  .player-slot { background: var(--bg-inner); border-radius: 12px; padding: 12px; border-left: 5px solid var(--border); transition: all 0.2s; position: relative; }
+  .players-scroll { display: flex; flex-direction: column; gap: 8px; }
+  .player-slot { background: var(--bg-inner); border-radius: 10px; padding: 10px; border-left: 5px solid var(--border); transition: all 0.2s; position: relative; }
   .player-slot.active { border-left-color: var(--warning); background: #1a2f4c; box-shadow: 0 0 15px rgba(56, 189, 248, 0.25); }
   .player-slot.busted { border-left-color: var(--danger); opacity: 0.45; }
   .player-slot.frozen, .player-slot.stayed { border-left-color: var(--success); }
-  .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
   
-  .score-badge { font-size: 0.8rem; padding: 4px 8px; border-radius: 6px; font-weight: 800; background: rgba(0,0,0,0.5); }
+  .score-badge { font-size: 0.78rem; padding: 3px 6px; border-radius: 4px; font-weight: 800; background: rgba(0,0,0,0.5); }
   .score-badge.total { background: #0284c7; color: #fff; }
-  .dealer-chip { background: #d97706; color: #fff; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-weight: 900; margin-left: 6px; }
+  .dealer-chip { background: #d97706; color: #fff; font-size: 0.68rem; padding: 2px 5px; border-radius: 4px; font-weight: 900; margin-left: 6px; }
 
-  .cards-list { display: flex; flex-wrap: wrap; gap: 6px; min-height: 28px; }
-  .card-chip { font-size: 0.85rem; padding: 4px 10px; border-radius: 6px; background: #0284c7; font-weight: 900; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+  .cards-list { display: flex; flex-wrap: wrap; gap: 5px; min-height: 26px; }
+  .card-chip { font-size: 0.82rem; padding: 3px 8px; border-radius: 6px; background: #0284c7; font-weight: 900; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
   .card-chip.mod { background: #d97706; color: #fff; border: 1px solid #f59e0b; }
   .card-chip.action { background: #7e22ce; color: #fff; border: 1px solid #c084fc; }
   .card-chip.shield { background: #047857; color: #fff; border: 1px solid #34d399; }
@@ -246,14 +251,14 @@
     display: none;
     background: linear-gradient(135deg, #6b21a8 0%, #a855f7 100%);
     border: 2px solid #e9d5ff;
-    border-radius: 12px;
-    padding: 10px;
+    border-radius: 10px;
+    padding: 8px;
     text-align: center;
-    box-shadow: 0 0 25px rgba(168, 85, 247, 0.8);
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.8);
   }
-  .flip3-dots { display: flex; justify-content: center; gap: 8px; margin-top: 6px; }
-  .flip3-dot { width: 14px; height: 14px; border-radius: 50%; background: rgba(255,255,255,0.3); border: 2px solid #fff; }
-  .flip3-dot.active { background: #fbbf24; border-color: #fbbf24; box-shadow: 0 0 10px #fbbf24; }
+  .flip3-dots { display: flex; justify-content: center; gap: 6px; margin-top: 4px; }
+  .flip3-dot { width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,0.3); border: 2px solid #fff; }
+  .flip3-dot.active { background: #fbbf24; border-color: #fbbf24; box-shadow: 0 0 8px #fbbf24; }
 
   /* MODALE */
   .winner-modal {
@@ -271,7 +276,7 @@
 
   .target-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 5000; padding: 16px; }
   .target-content { background: var(--bg-card); border: 2px solid var(--purple); border-radius: 14px; padding: 16px; max-width: 360px; width: 100%; }
-  .target-btn { width: 100%; padding: 14px 12px; margin-bottom: 6px; background: var(--bg-inner); border: 1px solid var(--border); color: #fff; border-radius: 8px; text-align: left; font-weight: bold; display: flex; justify-content: space-between; }
+  .target-btn { width: 100%; padding: 12px 10px; margin-bottom: 6px; background: var(--bg-inner); border: 1px solid var(--border); color: #fff; border-radius: 8px; text-align: left; font-weight: bold; display: flex; justify-content: space-between; }
 </style>
 </head>
 <body>
@@ -286,14 +291,14 @@
     </div>
   </div>
 
-  <!-- SPECJALNY BANER DLA FLIP 3 -->
+  <!-- SPECJALNY BANER FLIP 3 -->
   <div class="flip3-active-box" id="flip3-status-box">
-    <div style="font-weight: 900; font-size: 1rem; text-transform: uppercase;">⚡ TRYB FLIP 3: <span id="flip3-target-player" style="color:#fbbf24;"></span></div>
-    <div style="font-size: 0.82rem; margin-top:2px;">Wymuszone dociągnięcia: <strong id="flip3-draw-counter">3 z 3</strong></div>
+    <div style="font-weight: 900; font-size: 0.95rem; text-transform: uppercase;">⚡ TRYB FLIP 3: <span id="flip3-target-player" style="color:#fbbf24;"></span></div>
+    <div style="font-size: 0.8rem; margin-top:2px;">Wymuszone losowania: <strong id="flip3-draw-counter">3 z 3</strong></div>
     <div class="flip3-dots" id="flip3-dots-container"></div>
   </div>
 
-  <!-- GŁÓWNY UKŁAD 2 DUŻYCH PANELI -->
+  <!-- GŁÓWNY UKŁAD 2 PANELI -->
   <div class="main-grid">
     <!-- LEWY PANEL: STATYSTYKI, STÓŁ 3D, PRZYCISKI & KLAWIATURA -->
     <div class="panel">
@@ -321,19 +326,19 @@
       <div class="arena-box">
         <div class="deck-row">
           <div class="card-3d-deck" id="deck-3d-click" onclick="draw3DCard()">
-            <div style="font-size:1.2rem; font-weight:900; color:#fff;">FLIP 7</div>
+            <div style="font-size:1.15rem; font-weight:900; color:#fff;">FLIP 7</div>
             <div style="font-size:0.75rem; color:#93c5fd; margin-top:4px;" id="deck-3d-count">94 kart</div>
           </div>
           <div id="slot-3d-card">
             <div class="drawn-card-slot" style="border-style:dashed; background:rgba(255,255,255,0.05); color:var(--text-muted);">
-              <span style="font-size:0.75rem;">DOCIĄGNIJ</span>
+              <span style="font-size:0.75rem;">LOSUJ</span>
             </div>
           </div>
         </div>
 
         <div class="controls-grid">
-          <button class="action-btn-huge btn-hit-huge" id="btn-hit-huge" onclick="draw3DCard()">Dociągnij</button>
-          <button class="action-btn-huge btn-stay-huge" id="btn-stay-huge" onclick="playerStay(activePlayerIndex)">Zatrzymaj</button>
+          <button class="action-btn-huge btn-hit-huge" id="btn-hit-huge" onclick="draw3DCard()">LOSUJ</button>
+          <button class="action-btn-huge btn-stay-huge" id="btn-stay-huge" onclick="playerStay(activePlayerIndex)">PASS</button>
         </div>
       </div>
 
@@ -350,7 +355,6 @@
 
     <!-- PRAWY PANEL: LOBBY, LISTA GRACZY I PRZYCISKI KONTROLNE -->
     <div class="panel">
-      <!-- Lobby / Informacja o PIN -->
       <div class="pin-display-badge" id="lobby-badge">
         <span id="lobby-title">🎮 PIN: <strong style="color:var(--warning); font-size:1.15rem; letter-spacing:1px;">Lokalnie</strong></span>
         <span style="font-size:0.75rem; color:var(--text-muted);" id="lobby-sub">Grasz na 1 urządzeniu</span>
@@ -413,7 +417,7 @@ let players = [
   { id: "local_2", name: "Mikołaj000", cards: [], status: "active", roundScore: 0, totalScore: 0, secondChances: 0 }
 ];
 let activePlayerIndex = 0;
-let roundStartingIndex = 0; // Rotacja startującego gracza zgodnie z ruchem wskazówek zegara
+let roundStartingIndex = 0;
 let lastDrawnCard = null;
 
 let flip3State = { active: false, targetPlayerIndex: null, remainingDraws: 0, returnPlayerIndex: null };
@@ -451,6 +455,7 @@ function triggerActionBanner(title, desc, mode = "special") {
   if (mode === "freeze") { alertBox.classList.add("freeze-mode"); vibrate([100, 50, 100]); }
   else if (mode === "bust") { vibrate([200, 100, 200]); }
   else if (mode === "flip7") { alertBox.classList.add("flip7-mode"); vibrate([50, 50, 50, 50, 100]); }
+  else if (mode === "discard") { alertBox.classList.add("discard-mode"); vibrate(40); }
   else { vibrate(60); }
   
   clearTimeout(alertTimeout);
@@ -493,7 +498,7 @@ function handleIncomingAction(action) {
 function createRoom() {
   const myName = document.getElementById("my-name-input").value.trim() || "Host";
   const pin = Math.floor(1000 + Math.random() * 9000).toString();
-  currentRoomTopic = `flip7_v7_${pin}`;
+  currentRoomTopic = `flip7_v9_${pin}`;
   
   document.getElementById("lobby-title").innerText = "Łączenie...";
 
@@ -546,7 +551,7 @@ function joinRoom() {
   const myName = document.getElementById("my-name-input").value.trim() || "Gracz";
   if (!pin) { alert("Wpisz 4-cyfrowy PIN!"); return; }
 
-  currentRoomTopic = `flip7_v7_${pin}`;
+  currentRoomTopic = `flip7_v9_${pin}`;
   document.getElementById("lobby-title").innerText = "Dołączanie...";
 
   mqttClient = mqtt.connect(MQTT_BROKER, {
@@ -700,10 +705,19 @@ function handleCardClick(cardKey) {
     checkDeckExhaustion();
     
     let alertData = null;
-    if (cardKey.startsWith("+") || cardKey === "x2" || cardKey === "2ndChance") {
+    const currP = players[activePlayerIndex];
+
+    if (cardKey === "2ndChance" && currP.secondChances >= 1) {
+      alertData = {
+        title: "🗑️ KARTA ODRZUCONA (SPALENIE)",
+        desc: `${currP.name} ma już tarczę 2ndChance. Nadmiarowa karta idzie na spalenie!`,
+        mode: "discard"
+      };
+      triggerActionBanner(alertData.title, alertData.desc, alertData.mode);
+    } else if (cardKey.startsWith("+") || cardKey === "x2" || cardKey === "2ndChance") {
       alertData = {
         title: "KARTA BONUSOWA!",
-        desc: `${players[activePlayerIndex].name} zdobywa [${cardKey}]!`,
+        desc: `${currP.name} zdobywa [${cardKey}]!`,
         mode: "special"
       };
       triggerActionBanner(alertData.title, alertData.desc, alertData.mode);
@@ -731,7 +745,8 @@ function applyCardToPlayer(playerIdx, cardKey) {
   }
 
   if (cardKey === "2ndChance") {
-    p.secondChances++;
+    if (p.secondChances >= 1) return;
+    p.secondChances = 1;
     p.cards.push(cardKey);
     p.roundScore = calculateRoundScore(p.cards).total;
     return;
@@ -742,7 +757,7 @@ function applyCardToPlayer(playerIdx, cardKey) {
   const bustCheck = checkBust(p.cards);
   if (bustCheck.isBusted) {
     if (p.secondChances > 0) {
-      p.secondChances--;
+      p.secondChances = 0;
       const idx2nd = p.cards.indexOf("2ndChance");
       if (idx2nd > -1) p.cards.splice(idx2nd, 1);
       const lastDupe = p.cards.lastIndexOf(bustCheck.dupeCard);
@@ -817,7 +832,7 @@ function confirmSpecialAssignment(targetIdx, cardKeyOverride) {
   } else if (cardKey === "Flip3") {
     alertData = {
       title: "⚡ FLIP 3!",
-      desc: `${sourceName.toUpperCase()} wymusił 3 dociągnięcia dla ${targetName.toUpperCase()}!`,
+      desc: `${sourceName.toUpperCase()} wymusił 3 losowania dla ${targetName.toUpperCase()}!`,
       mode: "special"
     };
   }
@@ -861,8 +876,8 @@ function playerStay(idx) {
     p.totalScore += p.roundScore;
     
     const alertData = {
-      title: "🛑 ZATRZYMANIE (STAY)",
-      desc: `${p.name} zabezpiecza ${p.roundScore} pkt (Suma: ${p.totalScore})`,
+      title: "🛑 PASS",
+      desc: `${p.name} pasuje i zabezpiecza ${p.roundScore} pkt (Suma: ${p.totalScore})`,
       mode: "special"
     };
     triggerActionBanner(alertData.title, alertData.desc, alertData.mode);
@@ -1012,23 +1027,23 @@ function render() {
   const isMyTurn = !isOnline ? true : (currPlayer && currPlayer.id === myClientId);
   const canClick = isMyTurn && currPlayer && currPlayer.status === "active";
 
-  // WIDOCZNY BANER TURY
+  // BANER TURY
   const turnBanner = document.getElementById("global-turn-banner");
   if (canClick) {
     turnBanner.className = "turn-banner my-turn";
-    turnBanner.innerHTML = "👉 TWOJA TURA! DOCIĄGNIJ LUB ZATRZYMAJ";
+    turnBanner.innerHTML = "👉 TWOJA TURA! LOSUJ LUB PASS";
   } else {
     turnBanner.className = "turn-banner other-turn";
     turnBanner.innerHTML = `⏳ TURA GRACZA: <strong>${currPlayer ? currPlayer.name.toUpperCase() : ''}</strong>`;
   }
 
-  // BANER ODLICZANIA FLIP 3
+  // BANER FLIP 3
   const flip3Box = document.getElementById("flip3-status-box");
   if (flip3State.active) {
     flip3Box.style.display = "block";
     const targetP = players[flip3State.targetPlayerIndex];
     document.getElementById("flip3-target-player").innerText = targetP ? targetP.name.toUpperCase() : "";
-    document.getElementById("flip3-draw-counter").innerText = `Pozostało dociągnięć: ${flip3State.remainingDraws}/3`;
+    document.getElementById("flip3-draw-counter").innerText = `Pozostało losowań: ${flip3State.remainingDraws}/3`;
     
     const dotsBox = document.getElementById("flip3-dots-container");
     dotsBox.innerHTML = "";
