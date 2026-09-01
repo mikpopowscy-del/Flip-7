@@ -31,7 +31,7 @@
     gap: 10px;
   }
 
-  /* GÓRNY PASEK BANERÓW NA PC */
+  /* GÓRNY PASEK BANERÓW NA PC (2 RÓWNE KOLUMNY) */
   .top-banners-grid {
     display: grid;
     grid-template-columns: 1fr;
@@ -122,7 +122,7 @@
     100% { transform: scale(1) translateY(0); }
   }
 
-  /* GŁÓWNY UKŁAD: NA TELEFONIE PRAWY PANEL (GRACZE) JEST PIERWSZY (order: 1), ARENA DRUGA (order: 2), A KLAWIATURA NA DOLE (order: 3) */
+  /* GŁÓWNY UKŁAD */
   .main-grid {
     display: flex;
     flex-direction: column;
@@ -135,23 +135,6 @@
       grid-template-columns: 1fr 1fr;
       align-items: start;
     }
-  }
-
-  .panel-left {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    order: 2;
-  }
-  .panel-right {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    order: 1;
-  }
-  @media(min-width: 900px) {
-    .panel-left { order: 1; }
-    .panel-right { order: 2; }
   }
 
   .panel {
@@ -205,7 +188,7 @@
   .drawn-card-slot .c-val { font-size: 2.5rem; }
   .drawn-card-slot .c-lbl { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; }
 
-  /* PRZYCISKI GŁÓWNE (LOSUJ / PASS) */
+  /* PRZYCISKI GŁÓWNE */
   .controls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; max-width: 440px; }
   button.action-btn-huge {
     cursor: pointer; border: none; border-radius: 10px; padding: 13px 8px;
@@ -230,7 +213,7 @@
   .card-btn.special { border-color: var(--purple); }
   .card-btn.mod { border-color: var(--warning); }
 
-  /* PRAWY PANEL (LOBBY & GRACZE) */
+  /* POKÓJ I GRACZE */
   .pin-display-badge {
     background: rgba(56, 189, 248, 0.08);
     border: 1px solid var(--border);
@@ -318,8 +301,61 @@
 
   <!-- GŁÓWNY UKŁAD -->
   <div class="main-grid">
-    <!-- PANEL 1 (NA TELEFONIE WYŚWIETLA SIĘ JAKO PIERWSZY: LOBBY, GRACZE I PRZEKAZANE KARTY) -->
-    <div class="panel panel-right">
+    <!-- LEWY PANEL (NA DESKTOPIE PO LEWEJ, NA TELEFONIE PO KOLEI: STATS -> ARENA 3D -> GRACZE -> KLAWIATURY NA SAMYM DOLE) -->
+    <div class="panel">
+      <!-- 1. Statystyki -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="num" id="stat-cards-left">94</div>
+          <div class="lbl">Talia</div>
+        </div>
+        <div class="stat-card">
+          <div class="num danger" id="stat-bust-prob">0.0%</div>
+          <div class="lbl">Bust</div>
+        </div>
+        <div class="stat-card">
+          <div class="num" id="stat-unique-count">0/7</div>
+          <div class="lbl">Unikalne</div>
+        </div>
+        <div class="stat-card">
+          <div class="num" id="stat-active-score">0</div>
+          <div class="lbl">Runda</div>
+        </div>
+      </div>
+
+      <!-- 2. Arena 3D i dociąganie -->
+      <div class="arena-box">
+        <div class="deck-row">
+          <div class="card-3d-deck" id="deck-3d-click" onclick="draw3DCard()">
+            <div style="font-size:1.15rem; font-weight:900; color:#fff;">FLIP 7</div>
+            <div style="font-size:0.75rem; color:#93c5fd; margin-top:4px;" id="deck-3d-count">94 kart</div>
+          </div>
+          <div id="slot-3d-card">
+            <div class="drawn-card-slot" style="border-style:dashed; background:rgba(255,255,255,0.05); color:var(--text-muted);">
+              <span style="font-size:0.75rem;">LOSUJ</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="controls-grid">
+          <button class="action-btn-huge btn-hit-huge" id="btn-hit-huge" onclick="draw3DCard()">LOSUJ</button>
+          <button class="action-btn-huge btn-stay-huge" id="btn-stay-huge" onclick="playerStay(activePlayerIndex)">PASS</button>
+        </div>
+      </div>
+
+      <!-- 3. Klawiatury kart (NA TELEFONIE ZJEŻDŻAJĄ NA DÓŁ POPRZEZ CSS ORDER) -->
+      <div id="deck-keypads-section">
+        <div class="deck-section-title">Karty Numeryczne (Pozostałe w talii)</div>
+        <div class="deck-keypad" id="deck-numbers"></div>
+        
+        <div class="deck-section-title">Modyfikatory & Akcje w talii</div>
+        <div class="deck-keypad specials-grid" id="deck-modifiers"></div>
+        <div class="deck-keypad actions-grid" id="deck-actions" style="margin-top:4px;"></div>
+      </div>
+    </div>
+
+    <!-- PRAWY PANEL: LOBBY, GRACZE PRZY STOLE I WYLOSOWANE KARTY -->
+    <div class="panel" id="players-side-panel">
       <div class="pin-display-badge" id="lobby-badge">
         <span id="lobby-title">🎮 PIN: <strong style="color:var(--warning); font-size:1.15rem; letter-spacing:1px;">Lokalnie</strong></span>
         <span style="font-size:0.75rem; color:var(--text-muted);" id="lobby-sub">Grasz na 1 urządzeniu</span>
@@ -344,59 +380,6 @@
         <button class="action-btn-huge" style="background:var(--danger); color:#fff; flex:1; font-size:0.85rem; padding:12px;" onclick="resetDeckFull()">Reset Gry</button>
       </div>
     </div>
-
-    <!-- PANEL 2 (NA TELEFONIE: ARENA 3D, DOCIĄGANIE ORAZ NA SAMYM DOLE KARTY KTÓRE ZOSTAŁY DO PRZEWINIĘCIA) -->
-    <div class="panel panel-left">
-      <!-- Statystyki -->
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="num" id="stat-cards-left">94</div>
-          <div class="lbl">Talia</div>
-        </div>
-        <div class="stat-card">
-          <div class="num danger" id="stat-bust-prob">0.0%</div>
-          <div class="lbl">Bust</div>
-        </div>
-        <div class="stat-card">
-          <div class="num" id="stat-unique-count">0/7</div>
-          <div class="lbl">Unikalne</div>
-        </div>
-        <div class="stat-card">
-          <div class="num" id="stat-active-score">0</div>
-          <div class="lbl">Runda</div>
-        </div>
-      </div>
-
-      <!-- Arena 3D -->
-      <div class="arena-box">
-        <div class="deck-row">
-          <div class="card-3d-deck" id="deck-3d-click" onclick="draw3DCard()">
-            <div style="font-size:1.15rem; font-weight:900; color:#fff;">FLIP 7</div>
-            <div style="font-size:0.75rem; color:#93c5fd; margin-top:4px;" id="deck-3d-count">94 kart</div>
-          </div>
-          <div id="slot-3d-card">
-            <div class="drawn-card-slot" style="border-style:dashed; background:rgba(255,255,255,0.05); color:var(--text-muted);">
-              <span style="font-size:0.75rem;">LOSUJ</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="controls-grid">
-          <button class="action-btn-huge btn-hit-huge" id="btn-hit-huge" onclick="draw3DCard()">LOSUJ</button>
-          <button class="action-btn-huge btn-stay-huge" id="btn-stay-huge" onclick="playerStay(activePlayerIndex)">PASS</button>
-        </div>
-      </div>
-
-      <!-- Klawiatury kart (Karty pozostałe w talii - na telefonie na dole) -->
-      <div>
-        <div class="deck-section-title">Karty Numeryczne (Pozostałe w talii)</div>
-        <div class="deck-keypad" id="deck-numbers"></div>
-        
-        <div class="deck-section-title">Modyfikatory & Akcje w talii</div>
-        <div class="deck-keypad specials-grid" id="deck-modifiers"></div>
-        <div class="deck-keypad actions-grid" id="deck-actions" style="margin-top:4px;"></div>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -412,7 +395,7 @@
   </div>
 </div>
 
-<!-- MODAL CELU DLA KART AKCJI -->
+<!-- MODAL CELU -->
 <div class="target-modal" id="target-modal">
   <div class="target-content">
     <h3 id="modal-card-title" style="color:var(--accent); margin-bottom:10px; font-size:1.1rem;">Przydziel kartę</h3>
@@ -516,7 +499,7 @@ function handleIncomingAction(action) {
 function createRoom() {
   const myName = document.getElementById("my-name-input").value.trim() || "Host";
   const pin = Math.floor(1000 + Math.random() * 9000).toString();
-  currentRoomTopic = `flip7_v10_${pin}`;
+  currentRoomTopic = `flip7_v11_${pin}`;
   
   document.getElementById("lobby-title").innerText = "Łączenie...";
 
@@ -569,7 +552,7 @@ function joinRoom() {
   const myName = document.getElementById("my-name-input").value.trim() || "Gracz";
   if (!pin) { alert("Wpisz 4-cyfrowy PIN!"); return; }
 
-  currentRoomTopic = `flip7_v10_${pin}`;
+  currentRoomTopic = `flip7_v11_${pin}`;
   document.getElementById("lobby-title").innerText = "Dołączanie...";
 
   mqttClient = mqtt.connect(MQTT_BROKER, {
@@ -915,6 +898,7 @@ function checkAutoRoundProgression() {
   }
 }
 
+// ROTACJA ROZPOCZYNANIA RUNDY W PRAWO
 function autoStartNextRound() {
   players.forEach(p => {
     p.cards = [];
