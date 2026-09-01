@@ -31,7 +31,6 @@
     gap: 10px;
   }
 
-  /* GÓRNY PASEK BANERÓW */
   .top-banners-grid {
     display: grid;
     grid-template-columns: 1fr;
@@ -122,7 +121,6 @@
     100% { transform: scale(1) translateY(0); }
   }
 
-  /* GŁÓWNY UKŁAD */
   .main-grid {
     display: flex;
     flex-direction: column;
@@ -148,14 +146,12 @@
     gap: 10px;
   }
 
-  /* STATYSTYKI */
   .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
   .stat-card { background: var(--bg-inner); padding: 8px 4px; border-radius: 8px; text-align: center; }
   .stat-card .num { font-size: 1.2rem; font-weight: 900; color: var(--accent); }
   .stat-card .num.danger { color: var(--danger); }
   .stat-card .lbl { font-size: 0.65rem; color: var(--text-muted); margin-top: 2px; text-transform: uppercase; font-weight: bold; }
 
-  /* ARENA 3D */
   .arena-box {
     background: radial-gradient(circle at center, #1e293b 0%, #080f20 100%);
     border: 1px solid var(--border);
@@ -188,7 +184,6 @@
   .drawn-card-slot .c-val { font-size: 2.5rem; }
   .drawn-card-slot .c-lbl { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; }
 
-  /* PRZYCISKI GŁÓWNE */
   .controls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; max-width: 440px; }
   button.action-btn-huge {
     cursor: pointer; border: none; border-radius: 10px; padding: 13px 8px;
@@ -200,7 +195,6 @@
   .btn-hit-huge { background: var(--accent); color: #000; box-shadow: 0 4px 12px rgba(56, 189, 248, 0.4); }
   .btn-stay-huge { background: var(--success); color: #000; box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4); }
 
-  /* LISTA GRACZY I WYNIKÓW */
   .players-scroll { display: flex; flex-direction: column; gap: 8px; }
   .player-slot { background: var(--bg-inner); border-radius: 10px; padding: 10px; border-left: 5px solid var(--border); transition: all 0.2s; position: relative; }
   .player-slot.active { border-left-color: var(--warning); background: #1a2f4c; box-shadow: 0 0 15px rgba(56, 189, 248, 0.25); }
@@ -218,7 +212,6 @@
   .card-chip.action { background: #7e22ce; color: #fff; border: 1px solid #c084fc; }
   .card-chip.shield { background: #047857; color: #fff; border: 1px solid #34d399; }
 
-  /* KLAWIATURY KART */
   .deck-section-title { font-size: 0.72rem; color: var(--text-muted); margin: 4px 0 2px 0; text-transform: uppercase; font-weight: bold; }
   .deck-keypad { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; margin-bottom: 6px; }
   .deck-keypad.specials-grid { grid-template-columns: repeat(6, 1fr); }
@@ -231,7 +224,6 @@
   .card-btn.special { border-color: var(--purple); }
   .card-btn.mod { border-color: var(--warning); }
 
-  /* LOBBY */
   .pin-display-badge {
     background: rgba(56, 189, 248, 0.08);
     border: 1px solid var(--border);
@@ -249,7 +241,6 @@
   .lobby-input { background: var(--bg-inner); border: 1px solid var(--border); color: #fff; padding: 10px; border-radius: 8px; font-size: 0.85rem; flex: 1; }
   .lobby-input::placeholder { color: var(--text-muted); opacity: 0.75; }
 
-  /* FLIP 3 BANER */
   .flip3-active-box {
     display: none;
     background: linear-gradient(135deg, #6b21a8 0%, #a855f7 100%);
@@ -263,7 +254,6 @@
   .flip3-dot { width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,0.3); border: 2px solid #fff; }
   .flip3-dot.active { background: #fbbf24; border-color: #fbbf24; box-shadow: 0 0 8px #fbbf24; }
 
-  /* MODALE */
   .winner-modal {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center;
@@ -303,7 +293,7 @@
 
   <!-- GŁÓWNY UKŁAD -->
   <div class="main-grid">
-    <!-- PANEL 1: STATYSTYKI, ARENA 3D ORAZ GRACZE I WYNIKI (WIDOK GŁÓWNY) -->
+    <!-- PANEL GŁÓWNY: STATYSTYKI, ARENA 3D ORAZ GRACZE I WYNIKI -->
     <div class="panel">
       <!-- 1. Statystyki -->
       <div class="stats-grid">
@@ -357,7 +347,7 @@
       </div>
     </div>
 
-    <!-- PANEL 2: KLAWIATURY POZOSTAŁYCH W TALII KART ORAZ OPCJE LOBBY -->
+    <!-- PANEL BOCZNY: KLAWIATURA POZOSTAŁYCH W TALII KART ORAZ OPCJE LOBBY -->
     <div class="panel">
       <!-- 1. Klawiatury kart pozostałych w talii -->
       <div>
@@ -370,16 +360,16 @@
       </div>
 
       <!-- 2. Formularz tworzenia/dołączania -->
-      <div id="lobby-setup-box" style="display:flex; flex-direction:column; gap:6px; margin-top:8px;">
+      <form onsubmit="event.preventDefault();" autocomplete="off" id="lobby-setup-box" style="display:flex; flex-direction:column; gap:6px; margin-top:8px;">
         <div class="lobby-inputs">
-          <input type="text" id="my-name-input" class="lobby-input" placeholder="Wpisz swoje imię">
-          <button class="action-btn-huge" style="background:var(--accent); color:#000; padding:8px 14px; font-size:0.85rem;" onclick="createRoom()">Hostuj</button>
+          <input type="text" id="user-display-name-field" name="player_unique_random_tag" class="lobby-input" placeholder="Wpisz swoje imię" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false">
+          <button type="button" class="action-btn-huge" style="background:var(--accent); color:#000; padding:8px 14px; font-size:0.85rem;" onclick="createRoom()">Hostuj</button>
         </div>
         <div class="lobby-inputs">
-          <input type="text" id="room-pin-input" class="lobby-input" placeholder="Wpisz 4-cyfrowy PIN">
-          <button class="action-btn-huge" style="background:#334155; color:#fff; padding:8px 14px; font-size:0.85rem;" onclick="joinRoom()">Dołącz</button>
+          <input type="text" id="room-pin-input" name="room_pin_unique_tag" class="lobby-input" placeholder="Wpisz 4-cyfrowy PIN" autocomplete="off">
+          <button type="button" class="action-btn-huge" style="background:#334155; color:#fff; padding:8px 14px; font-size:0.85rem;" onclick="joinRoom()">Dołącz</button>
         </div>
-      </div>
+      </form>
 
       <div style="display:flex; gap:8px; margin-top:auto;" id="host-controls">
         <button class="action-btn-huge" style="background:#6366f1; color:#fff; flex:1; font-size:0.85rem; padding:12px;" onclick="manualShuffle()">🔀 Przetasuj</button>
@@ -503,7 +493,7 @@ function handleIncomingAction(action) {
 }
 
 function createRoom() {
-  const nameInput = document.getElementById("my-name-input");
+  const nameInput = document.getElementById("user-display-name-field");
   const myName = nameInput.value.trim();
   if (!myName) {
     alert("Wpisz swoje imię przed założeniem pokoju!");
@@ -512,7 +502,7 @@ function createRoom() {
   }
 
   const pin = Math.floor(1000 + Math.random() * 9000).toString();
-  currentRoomTopic = `flip7_v15_${pin}`;
+  currentRoomTopic = `flip7_v16_${pin}`;
   
   document.getElementById("lobby-title").innerText = "Łączenie...";
 
@@ -561,7 +551,7 @@ function createRoom() {
 }
 
 function joinRoom() {
-  const nameInput = document.getElementById("my-name-input");
+  const nameInput = document.getElementById("user-display-name-field");
   const myName = nameInput.value.trim();
   if (!myName) {
     alert("Wpisz swoje imię przed dołączeniem!");
@@ -572,7 +562,7 @@ function joinRoom() {
   const pin = document.getElementById("room-pin-input").value.trim();
   if (!pin) { alert("Wpisz 4-cyfrowy PIN!"); return; }
 
-  currentRoomTopic = `flip7_v15_${pin}`;
+  currentRoomTopic = `flip7_v16_${pin}`;
   document.getElementById("lobby-title").innerText = "Dołączanie...";
 
   mqttClient = mqtt.connect(MQTT_BROKER, {
